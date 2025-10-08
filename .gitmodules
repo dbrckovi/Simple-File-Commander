@@ -1,4 +1,4 @@
 [submodule "lib/TermCL"]
 	path = lib/TermCL
 	url = https://github.com/RaphGL/TermCL.git
-	branch = master
+	branch = main
