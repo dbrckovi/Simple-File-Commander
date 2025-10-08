@@ -4,60 +4,80 @@ import t "../lib/TermCL"
 import tb "../lib/TermCL/term"
 import "core:fmt"
 
-should_run := true
+_should_run := true
+_screen: t.Screen
+_lastKeyboardEvent: t.Keyboard_Input
+_lastMouseEvent: t.Mouse_Input
+BG_COLOR: t.Any_Color = {}
 
 main :: proc() {
 
-	s := init()
+	init()
 
-	for should_run {
-		loop(&s)
+	for _should_run {
+		loop()
 	}
 
-	deinit(&s)
+	deinit()
 }
 
 // initialization on start
-init :: proc() -> t.Screen {
-	tb.set_backend()
-	screen := t.init_screen()
+init :: proc() {
+	_screen = t.init_screen(tb.VTABLE)
 
-	t.set_term_mode(&screen, .Raw)
+	t.set_term_mode(&_screen, .Raw)
 
-	t.clear(&screen, .Everything)
-	t.move_cursor(&screen, 0, 0)
+	t.clear(&_screen, .Everything)
+	t.move_cursor(&_screen, 0, 0)
 
-	t.blit(&screen)
-	return screen
+	t.blit(&_screen)
 }
 
-loop :: proc(screen: ^t.Screen) {
-	t.clear(screen, .Everything)
-	defer t.blit(screen)
+draw :: proc() {
+	t.clear(&_screen, .Everything)
+	defer t.blit(&_screen)
+	t.move_cursor(&_screen, 0, 0)
+	t.write(&_screen, "Press `Esc` to exit")
 
-	t.move_cursor(screen, 0, 0)
-	t.write(screen, "Press `Esc` to exit")
+	t.move_cursor(&_screen, 4, 0)
+	t.set_color_style(&_screen, .Green, BG_COLOR)
+	t.write(&_screen, "Keyboard: ")
+	t.set_color_style(&_screen, .White, BG_COLOR)
+	t.writef(&_screen, "%v", _lastKeyboardEvent)
 
-	t.move_cursor(screen, 2, 0)
+	t.move_cursor(&_screen, 6, 0)
+	t.set_color_style(&_screen, .Green, BG_COLOR)
+	t.write(&_screen, "Mouse: ")
+	t.set_color_style(&_screen, .White, BG_COLOR)
+	t.writef(&_screen, "%v", _lastMouseEvent)
+}
 
-	input := t.read_blocking(screen)
+update :: proc() {
+	input := t.read_blocking(&_screen)
 
 	switch i in input {
 	case t.Keyboard_Input:
-		t.move_cursor(screen, 4, 0)
-		t.write(screen, "Keyboard: ")
-		t.writef(screen, "%v", i)
-		if i.key == .Escape do should_run = false
+		_lastKeyboardEvent = i
+		if i.key == .Escape do _should_run = false
 	case t.Mouse_Input:
-		t.move_cursor(screen, 6, 0)
-		t.write(screen, "Mouse: ")
-		t.writef(screen, "%v", i)
+		_lastMouseEvent = i
 	}
 }
 
-// deinitialization on exit
-deinit :: proc(s: ^t.Screen) {
-	t.destroy_screen(s)
+
+loop :: proc() {
+
+	draw()
+
+	update()
+
+
+	t.move_cursor(&_screen, 2, 0)
+
 }
 
+// deinitialization on exit
+deinit :: proc() {
+	t.destroy_screen(&_screen)
+}
 
