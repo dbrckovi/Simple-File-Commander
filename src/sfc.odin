@@ -6,78 +6,91 @@ import "core:fmt"
 
 _should_run := true
 _screen: t.Screen
-_lastKeyboardEvent: t.Keyboard_Input
-_lastMouseEvent: t.Mouse_Input
-BG_COLOR: t.Any_Color = {}
+_last_keyboard_event: t.Keyboard_Input
+_last_mouse_event: t.Mouse_Input
 
 main :: proc() {
 
-	init()
+	init_screen()
 
 	for _should_run {
-		loop()
+		draw()
+		update()
 	}
 
-	deinit()
+	deinit_screen()
 }
 
 // initialization on start
-init :: proc() {
+init_screen :: proc() {
 	_screen = t.init_screen(tb.VTABLE)
+	_screen.size = t.get_term_size()
 
 	t.set_term_mode(&_screen, .Raw)
 
 	t.clear(&_screen, .Everything)
 	t.move_cursor(&_screen, 0, 0)
-
+	t.hide_cursor(true)
 	t.blit(&_screen)
 }
 
 draw :: proc() {
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
-	t.move_cursor(&_screen, 0, 0)
-	t.write(&_screen, "Press `Esc` to exit")
 
-	t.move_cursor(&_screen, 4, 0)
-	t.set_color_style(&_screen, .Green, BG_COLOR)
-	t.write(&_screen, "Keyboard: ")
-	t.set_color_style(&_screen, .White, BG_COLOR)
-	t.writef(&_screen, "%v", _lastKeyboardEvent)
+	write_cropped("Press 'ESC' to exit", {0, 0}, .Yellow)
 
-	t.move_cursor(&_screen, 6, 0)
-	t.set_color_style(&_screen, .Green, BG_COLOR)
-	t.write(&_screen, "Mouse: ")
-	t.set_color_style(&_screen, .White, BG_COLOR)
-	t.writef(&_screen, "%v", _lastMouseEvent)
+	write_cropped("Keyboard:", {0, 1}, .Green)
+	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {10, 1}, .White)
+
+	write_cropped("Mouse:", {0, 2}, .Green)
+	write_cropped(fmt.tprintf("%v", _last_mouse_event), {10, 2}, .White)
+
+	write_cropped("Screen: ", {0, 3}, .Green)
+	write_cropped(fmt.tprintf("%v", _screen.size), {10, 3}, .White)
+
+	draw_rectangle({10, 10, 10, 5})
 }
 
 update :: proc() {
-	input := t.read_blocking(&_screen)
 
-	switch i in input {
-	case t.Keyboard_Input:
-		_lastKeyboardEvent = i
-		if i.key == .Escape do _should_run = false
-	case t.Mouse_Input:
-		_lastMouseEvent = i
+	input := wait_for_input()
+
+	if input != nil {
+
+		switch i in input {
+		case t.Keyboard_Input:
+			_last_keyboard_event = i
+			if i.key == .Escape do _should_run = false
+		case t.Mouse_Input:
+			_last_mouse_event = i
+		}
 	}
 }
 
+wait_for_input :: proc() -> t.Input {
+	input: t.Input
+	should_break := false
+	for {
+		new_size := t.get_term_size()
 
-loop :: proc() {
+		if new_size != _screen.size {
+			deinit_screen()
+			init_screen()
+			should_break = true
+		}
 
-	draw()
+		input = t.read(&_screen)
+		if input != nil do should_break = true
 
-	update()
+		if should_break do break
+	}
 
-
-	t.move_cursor(&_screen, 2, 0)
-
+	return input
 }
 
 // deinitialization on exit
-deinit :: proc() {
+deinit_screen :: proc() {
 	t.destroy_screen(&_screen)
 }
 
