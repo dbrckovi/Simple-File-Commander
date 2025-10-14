@@ -1,18 +1,45 @@
 package sfc
 
 import t "../lib/TermCL"
+import tb "../lib/TermCL/term"
 import "core:fmt"
 import "core:strings"
 
+_screen: t.Screen
 _last_foreground: t.Any_Color = .White
 _last_background: t.Any_Color = {}
 
 Rectangle :: struct {
-	x: uint,
-	y: uint,
-	w: uint,
-	h: uint,
+	x: int,
+	y: int,
+	w: int,
+	h: int,
 }
+
+
+/*
+	Initializes the terminal screen
+*/
+init_screen :: proc() {
+	_screen = t.init_screen(tb.VTABLE)
+	_screen.size = t.get_term_size()
+
+	t.set_term_mode(&_screen, .Raw)
+
+	t.clear(&_screen, .Everything)
+	t.move_cursor(&_screen, 0, 0)
+	t.hide_cursor(true)
+	t.blit(&_screen)
+}
+
+
+/*
+	Destroys the screen object which was created by init_screen
+*/
+deinit_screen :: proc() {
+	t.destroy_screen(&_screen)
+}
+
 
 /*
 	Draws hoizontal line
@@ -74,10 +101,9 @@ draw_vertical_line :: proc(
 	}
 
 	for i: uint = uint(max(y, 0)); i < min(uint(y + length_normalized), _screen.size.h); i += 1 {
-		write(double_border ? "║" : "│", {uint(x), i})
+		write(double_border ? "║" : "│", {uint(x), i}, foreground, background)
 	}
 }
-
 
 draw_rectangle :: proc(
 	rect: Rectangle,
@@ -85,30 +111,21 @@ draw_rectangle :: proc(
 	background: t.Any_Color = nil,
 	double_border := false,
 ) {
-	right := rect.x + rect.w
-	bottom := rect.y + rect.h
+	right := rect.x + rect.w - 1
+	bottom := rect.y + rect.h - 1
 
 	set_colors(foreground, background)
-	if rect.x >= _screen.size.w || rect.y >= _screen.size.h {
-		return
-	}
 
-	write("┌", {rect.x, rect.y})
+	write(double_border ? "╔" : "┌", {uint(rect.x), uint(rect.y)})
+	write(double_border ? "╗" : "┐", {uint(right), uint(rect.y)})
+	write(double_border ? "╚" : "└", {uint(rect.x), uint(bottom)})
+	write(double_border ? "╝" : "┘", {uint(right), uint(bottom)})
 
-	if right <= _screen.size.w {
-		write("┐", {right, rect.y})
-	}
+	draw_horizontal_line({rect.x + 1, rect.y}, rect.w - 2, nil, nil, double_border)
+	draw_horizontal_line({rect.x + 1, bottom}, rect.w - 2, nil, nil, double_border)
+	draw_vertical_line({rect.x, rect.y + 1}, rect.h - 2, nil, nil, double_border)
+	draw_vertical_line({right, rect.y + 1}, rect.h - 2, nil, nil, double_border)
 
-	if bottom < _screen.size.h {
-		write("└", {rect.x, bottom})
-	}
-
-	for x: uint = rect.x + 1; x < min(right - 1, _screen.size.w); x += 1 {
-		write("─", {x, rect.y})
-		if bottom < _screen.size.h {
-			write("─", {x, bottom})
-		}
-	}
 }
 
 /*
@@ -127,7 +144,9 @@ write :: proc(
 	background: t.Any_Color = nil,
 ) {
 	set_colors(foreground, background)
-	if (location.y >= _screen.size.h) do return
+	if location.y >= _screen.size.h || location.x >= _screen.size.w {
+		return
+	}
 
 	move_cursor(location.x, location.y)
 	t.write(&_screen, text)

@@ -5,7 +5,6 @@ import tb "../lib/TermCL/term"
 import "core:fmt"
 
 _should_run := true
-_screen: t.Screen
 _last_keyboard_event: t.Keyboard_Input
 _last_mouse_event: t.Mouse_Input
 
@@ -21,48 +20,52 @@ main :: proc() {
 	deinit_screen()
 }
 
-// initialization on start
-init_screen :: proc() {
-	_screen = t.init_screen(tb.VTABLE)
-	_screen.size = t.get_term_size()
 
-	t.set_term_mode(&_screen, .Raw)
-
-	t.clear(&_screen, .Everything)
-	t.move_cursor(&_screen, 0, 0)
-	// t.hide_cursor(true)
-	t.blit(&_screen)
-}
-
+/*
+	Periodically redraws entire screen
+*/
 draw :: proc() {
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
 
-	write_cropped("Press 'ESC' to exit", {0, _screen.size.h - 1}, .Yellow)
+	//half screen
+	draw_vertical_line({int(_screen.size.w) / 2, 0}, int(_screen.size.h), .Black)
+	draw_horizontal_line({0, int(_screen.size.h) / 2}, int(_screen.size.w), .Black)
+	write("┼", {_screen.size.w / 2, _screen.size.h / 2}, .Black)
 
-	write_cropped("Keyboard:", {0, _screen.size.h - 2}, .Green)
-	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {10, _screen.size.h - 2}, .White)
+	//mouse cursor
+	draw_vertical_line({int(_last_mouse_event.coord.x), 0}, int(_screen.size.h), .Cyan)
+	draw_horizontal_line({0, int(_last_mouse_event.coord.y)}, int(_screen.size.w), .Cyan)
+	write("┼", {_last_mouse_event.coord.x, _last_mouse_event.coord.y}, .Cyan)
 
-	write_cropped("Mouse:", {0, _screen.size.h - 3}, .Green)
-	write_cropped(fmt.tprintf("%v", _last_mouse_event), {10, _screen.size.h - 3}, .White)
+	write_cropped("Press 'ESC' to exit", {1, _screen.size.h - 2}, .Yellow)
 
-	write_cropped("Screen: ", {0, _screen.size.h - 4}, .Green)
-	write_cropped(fmt.tprintf("%v", _screen.size), {10, _screen.size.h - 4}, .White)
+	write_cropped("Keyboard:", {1, _screen.size.h - 3}, .Green)
+	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {11, _screen.size.h - 3}, .White)
 
-	// draw_rectangle({10, 10, 20, 5})
+	write_cropped("Mouse:", {1, _screen.size.h - 4}, .Green)
+	write_cropped(fmt.tprintf("%v", _last_mouse_event), {11, _screen.size.h - 4}, .White)
 
+	write_cropped("Screen: ", {1, _screen.size.h - 5}, .Green)
+	write_cropped(fmt.tprintf("%v", _screen.size), {11, _screen.size.h - 5}, .White)
 
-	for i := 50; i < 79; i += 1 {
-		draw_vertical_line({i, 0}, 20)
-	}
-	// if _last_mouse_event != nil {
+	//border
+	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
+
 	move_cursor(_last_mouse_event.coord.x, _last_mouse_event.coord.y)
-	// }
 }
 
+/*
+	Waits for something interesting to happen and handles it
+*/
 update :: proc() {
 
-	input := wait_for_input()
+	input, screen_size_changed := wait_for_interesting_event()
+
+	if screen_size_changed {
+		deinit_screen()
+		init_screen()
+	}
 
 	if input != nil {
 
@@ -76,29 +79,29 @@ update :: proc() {
 	}
 }
 
-wait_for_input :: proc() -> t.Input {
-	input: t.Input
+
+/*
+	Waits for something interesting to happen (which would cause the screen to redraw) and returns info on what happened
+*/
+wait_for_interesting_event :: proc() -> (t.Input, bool) {
+	input: t.Input = nil
+	screen_size_changed: bool = false
 	should_break := false
 	for {
-		new_size := t.get_term_size()
 
+		new_size := t.get_term_size()
 		if new_size != _screen.size {
-			deinit_screen()
-			init_screen()
+			screen_size_changed = true
 			should_break = true
 		}
 
 		input = t.read(&_screen)
-		if input != nil do should_break = true
 
-		if should_break do break
+		if screen_size_changed || input != nil {
+			break
+		}
 	}
 
-	return input
-}
-
-// deinitialization on exit
-deinit_screen :: proc() {
-	t.destroy_screen(&_screen)
+	return input, screen_size_changed
 }
 
