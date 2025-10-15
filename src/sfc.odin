@@ -3,12 +3,17 @@ package sfc
 import t "../lib/TermCL"
 import tb "../lib/TermCL/term"
 import "core:fmt"
+import "core:sys/posix"
 
 _should_run := true
 _last_keyboard_event: t.Keyboard_Input
 _last_mouse_event: t.Mouse_Input
+_pid: posix.pid_t
+
 
 main :: proc() {
+
+	_pid = posix.getpid()
 
 	init_screen()
 
@@ -38,16 +43,10 @@ draw :: proc() {
 	draw_horizontal_line({0, int(_last_mouse_event.coord.y)}, int(_screen.size.w), .Cyan)
 	write("┼", {_last_mouse_event.coord.x, _last_mouse_event.coord.y}, .Cyan)
 
-	write_cropped("Press 'ESC' to exit", {1, _screen.size.h - 2}, .Yellow)
-
-	write_cropped("Keyboard:", {1, _screen.size.h - 3}, .Green)
-	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {11, _screen.size.h - 3}, .White)
-
-	write_cropped("Mouse:", {1, _screen.size.h - 4}, .Green)
-	write_cropped(fmt.tprintf("%v", _last_mouse_event), {11, _screen.size.h - 4}, .White)
-
-	write_cropped("Screen: ", {1, _screen.size.h - 5}, .Green)
-	write_cropped(fmt.tprintf("%v", _screen.size), {11, _screen.size.h - 5}, .White)
+	write_cropped(fmt.tprintf("PID: %v", _pid), {1, _screen.size.h - 2}, .Yellow)
+	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {1, _screen.size.h - 3}, .White)
+	write_cropped(fmt.tprintf("%v", _last_mouse_event), {1, _screen.size.h - 4}, .White)
+	write_cropped(fmt.tprintf("%v", _screen.size), {1, _screen.size.h - 5}, .White)
 
 	//border
 	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
