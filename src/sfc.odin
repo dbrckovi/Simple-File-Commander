@@ -3,55 +3,46 @@ package sfc
 import t "../lib/TermCL"
 import tb "../lib/TermCL/term"
 import "core:fmt"
+import "core:mem" //TODO: use something from it
+import "core:os"
 import "core:sys/posix"
 
-_should_run := true
-_last_keyboard_event: t.Keyboard_Input
-_last_mouse_event: t.Mouse_Input
-_pid: posix.pid_t
+_should_run := true //Once this becomes false, program exits
+_last_keyboard_event: t.Keyboard_Input //Last input received from keyboard
+_last_mouse_event: t.Mouse_Input //Last input received from mouse
+_pid: posix.pid_t //This program's process ID
+_left_panel: FilePanel //Left panel data
+_right_panel: FilePanel //Right panel data
 
+FilePanel :: struct {
+	current_dir:      string,
+	items:            []os.File_Info,
+	first_item_index: int,
+	// allocator:        mem.Arena,			//Probably wrong
+}
 
 main :: proc() {
-
 	_pid = posix.getpid()
 
-	init_screen()
+	init()
 
 	for _should_run {
 		draw()
 		update()
+
 	}
 
 	deinit_screen()
 }
 
 
-/*
-	Periodically redraws entire screen
-*/
-draw :: proc() {
-	t.clear(&_screen, .Everything)
-	defer t.blit(&_screen)
+init :: proc() {
+	init_screen()
+	init_panels()
+}
 
-	//half screen
-	draw_vertical_line({int(_screen.size.w) / 2, 0}, int(_screen.size.h), .Black)
-	draw_horizontal_line({0, int(_screen.size.h) / 2}, int(_screen.size.w), .Black)
-	write("┼", {_screen.size.w / 2, _screen.size.h / 2}, .Black)
-
-	//mouse cursor
-	draw_vertical_line({int(_last_mouse_event.coord.x), 0}, int(_screen.size.h), .Cyan)
-	draw_horizontal_line({0, int(_last_mouse_event.coord.y)}, int(_screen.size.w), .Cyan)
-	write("┼", {_last_mouse_event.coord.x, _last_mouse_event.coord.y}, .Cyan)
-
-	write_cropped(fmt.tprintf("PID: %v", _pid), {1, _screen.size.h - 2}, .Yellow)
-	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {1, _screen.size.h - 3}, .White)
-	write_cropped(fmt.tprintf("%v", _last_mouse_event), {1, _screen.size.h - 4}, .White)
-	write_cropped(fmt.tprintf("%v", _screen.size), {1, _screen.size.h - 5}, .White)
-
-	//border
-	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
-
-	move_cursor(_last_mouse_event.coord.x, _last_mouse_event.coord.y)
+init_panels :: proc() {
+	_left_panel.current_dir = os.get_current_directory()
 }
 
 /*

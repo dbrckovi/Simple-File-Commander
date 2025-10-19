@@ -34,6 +34,35 @@ init_screen :: proc() {
 
 
 /*
+	Periodically redraws entire screen
+*/
+draw :: proc() {
+	t.clear(&_screen, .Everything)
+	defer t.blit(&_screen)
+
+	//half screen
+	draw_vertical_line({int(_screen.size.w) / 2, 0}, int(_screen.size.h), .Black)
+	draw_horizontal_line({0, int(_screen.size.h) / 2}, int(_screen.size.w), .Black)
+	write("┼", {_screen.size.w / 2, _screen.size.h / 2}, .Black)
+
+	//mouse cursor
+	draw_vertical_line({int(_last_mouse_event.coord.x), 0}, int(_screen.size.h), .Cyan)
+	draw_horizontal_line({0, int(_last_mouse_event.coord.y)}, int(_screen.size.w), .Cyan)
+	write("┼", {_last_mouse_event.coord.x, _last_mouse_event.coord.y}, .Cyan)
+
+	write_cropped(fmt.tprintf("PID: %v", _pid), {1, _screen.size.h - 2}, .Yellow)
+	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {1, _screen.size.h - 3}, .White)
+	write_cropped(fmt.tprintf("%v", _last_mouse_event), {1, _screen.size.h - 4}, .White)
+	write_cropped(fmt.tprintf("%v", _screen.size), {1, _screen.size.h - 5}, .White)
+
+	//border
+	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
+
+	move_cursor(_last_mouse_event.coord.x, _last_mouse_event.coord.y)
+}
+
+
+/*
 	Destroys the screen object which was created by init_screen
 */
 deinit_screen :: proc() {
