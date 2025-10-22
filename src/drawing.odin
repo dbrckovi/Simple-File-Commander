@@ -59,6 +59,10 @@ draw :: proc() {
 	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
 
 	move_cursor(_last_mouse_event.coord.x, _last_mouse_event.coord.y)
+
+	for file in _left_panel.files {
+		write_cropped(file.name, {10, 10})
+	}
 }
 
 

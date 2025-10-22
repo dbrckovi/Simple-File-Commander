@@ -14,13 +14,6 @@ _pid: posix.pid_t //This program's process ID
 _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
 
-FilePanel :: struct {
-	current_dir:      string,
-	items:            []os.File_Info,
-	first_item_index: int,
-	// allocator:        mem.Arena,			//Probably wrong
-}
-
 main :: proc() {
 	_pid = posix.getpid()
 
@@ -29,12 +22,10 @@ main :: proc() {
 	for _should_run {
 		draw()
 		update()
-
 	}
 
 	deinit_screen()
 }
-
 
 init :: proc() {
 	init_screen()
@@ -43,6 +34,10 @@ init :: proc() {
 
 init_panels :: proc() {
 	_left_panel.current_dir = os.get_current_directory()
+	reload_file_panel(&_left_panel)
+
+	_right_panel.current_dir = os.get_current_directory()
+	reload_file_panel(&_right_panel)
 }
 
 /*
