@@ -7,5 +7,8 @@ All border characters
 │ │ ├┼┤ ║ ║ ╠╬╣ │ │ ╞═╪═╡ ║ ║ ╟─╫─╢
 └─┘ └┴┘ ╚═╝ ╚╩╝ ╘═╛ ╘═╧═╛ ╙─╜ ╙─╨─╜
 
+Special characters
+↑↓
+
 */
 
