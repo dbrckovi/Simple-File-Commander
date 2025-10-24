@@ -8,6 +8,7 @@ import "core:strings"
 _screen: t.Screen
 _last_foreground: t.Any_Color = .White
 _last_background: t.Any_Color = {}
+_splitter_fraction: f32 = .5
 
 Rectangle :: struct {
 	x: int,
@@ -34,43 +35,102 @@ init_screen :: proc() {
 
 
 /*
+	Destroys the screen object which was created by init_screen
+*/
+deinit_screen :: proc() {
+	t.destroy_screen(&_screen)
+}
+
+
+/*
 	Periodically redraws entire screen
 */
 draw :: proc() {
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
 
-	//half screen
-	draw_vertical_line({int(_screen.size.w) / 2, 0}, int(_screen.size.h), .Black)
-	draw_horizontal_line({0, int(_screen.size.h) / 2}, int(_screen.size.w), .Black)
-	write("┼", {_screen.size.w / 2, _screen.size.h / 2}, .Black)
-
-	//mouse cursor
-	draw_vertical_line({int(_last_mouse_event.coord.x), 0}, int(_screen.size.h), .Cyan)
-	draw_horizontal_line({0, int(_last_mouse_event.coord.y)}, int(_screen.size.w), .Cyan)
-	write("┼", {_last_mouse_event.coord.x, _last_mouse_event.coord.y}, .Cyan)
-
-	write_cropped(fmt.tprintf("PID: %v", _pid), {1, _screen.size.h - 2}, .Yellow)
-	write_cropped(fmt.tprintf("%v", _last_keyboard_event), {1, _screen.size.h - 3}, .White)
-	write_cropped(fmt.tprintf("%v", _last_mouse_event), {1, _screen.size.h - 4}, .White)
-	write_cropped(fmt.tprintf("%v", _screen.size), {1, _screen.size.h - 5}, .White)
-
-	//border
-	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
-
-	move_cursor(_last_mouse_event.coord.x, _last_mouse_event.coord.y)
-
-	for file in _left_panel.files {
-		write_cropped(file.name, {10, 10})
-	}
+	draw_main_gui()
 }
 
 
 /*
-	Destroys the screen object which was created by init_screen
+	draws borders for main gui
 */
-deinit_screen :: proc() {
-	t.destroy_screen(&_screen)
+draw_main_gui :: proc() {
+
+	main_splitter_x := uint(f32(_screen.size.w) * _splitter_fraction)
+	draw_command_area := _last_error != nil
+
+	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
+
+	//center
+	draw_vertical_line({int(main_splitter_x), 1}, int(_screen.size.h - 2), nil, nil, true)
+	write("╦", {main_splitter_x, 0})
+	write("╩", {main_splitter_x, _screen.size.h - 1})
+
+	//command / error area
+	if draw_command_area {
+		command_area_top_y := _screen.size.h - 3
+		draw_horizontal_line({1, int(command_area_top_y)}, int(_screen.size.w) - 2, nil, nil, true)
+		write("╠", {0, command_area_top_y})
+		write("╩", {main_splitter_x, command_area_top_y})
+		write("╣", {_screen.size.w - 1, command_area_top_y})
+		write(" ", {main_splitter_x, command_area_top_y + 1})
+		write("═", {main_splitter_x, _screen.size.h - 1})
+
+		if _last_error != nil {
+			error_message := fmt.tprintf("Error: %v", _last_error)
+			write_cropped(
+				error_message,
+				{2, command_area_top_y + 1},
+				.Red,
+				nil,
+				_screen.size.w - 2,
+			)
+		}
+	}
+
+	//panel bottom
+	panel_bottom_x := _screen.size.h - (draw_command_area ? 5 : 3)
+	draw_horizontal_line({1, int(panel_bottom_x)}, int(_screen.size.w) - 2, nil, nil, false)
+	write("╟", {0, panel_bottom_x})
+	write("╫", {main_splitter_x, panel_bottom_x})
+	write("╢", {_screen.size.w - 1, panel_bottom_x})
+
+	draw_panel(&_left_panel, 0, main_splitter_x, panel_bottom_x)
+	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
+}
+
+
+/*
+	Draws layout of a single panel
+	left - x coordinate of the left border
+	right - x coordinate of the right border
+	bottom - y coordinate of the bottom single line
+*/
+draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
+
+	/*
+	TODO:
+	- don't draw date and/or size if width is not enough for name
+	- don't draw files if length width is less than something (10?)
+	*/
+
+	date_left_x := right - 19
+	size_left_x := date_left_x - 10
+
+	//date
+	draw_vertical_line({int(date_left_x), 1}, int(bottom - 1))
+	write("╤", {date_left_x, 0})
+	write("┴", {date_left_x, bottom})
+
+	//size
+
+	draw_vertical_line({int(size_left_x), 1}, int(bottom - 1))
+	write("╤", {size_left_x, 0})
+	write("┴", {size_left_x, bottom})
+
+	//name
 }
 
 
@@ -185,13 +245,24 @@ write :: proc(
 	t.write(&_screen, text)
 }
 
+/*
+Writes string to screen, cropping it at screen width, or at custom 'max_width'
+*/
+
 write_cropped :: proc(
 	text: string,
 	location: [2]uint,
 	foreground: t.Any_Color = nil,
 	background: t.Any_Color = nil,
+	max_width: uint = 0,
 ) {
-	space_available := _screen.size.w - location.x
+	crop_column: uint = _screen.size.w
+
+	if max_width > 0 && max_width < _screen.size.w && location.x <= max_width {
+		crop_column = max_width
+	}
+
+	space_available := crop_column - location.x
 
 	move_cursor(location.x, location.y)
 	if len(text) > int(space_available) {

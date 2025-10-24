@@ -7,7 +7,19 @@ FilePanel :: struct {
 	current_dir:      string,
 	files:            [dynamic]os.File_Info,
 	first_file_index: int,
-	last_error:       string,
+	sort_column:      SortColumn,
+	sort_direction:   SortDirection,
+}
+
+SortColumn :: enum {
+	name,
+	size,
+	date,
+}
+
+SortDirection :: enum {
+	ascending,
+	descending,
 }
 
 /*
@@ -18,13 +30,13 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 	handle, error := os.open(".", os.O_RDONLY, 0)
 
 	if error != nil {
-		set_panel_error(panel, error)
+		_last_error = error
 		defer os.close(handle)
 	}
 
 	fi, err := os.read_dir(handle, 1024, context.temp_allocator)
 	if err != 0 {
-		set_panel_error(panel, err)
+		_last_error = err
 	}
 
 	defer delete(fi)
@@ -34,13 +46,6 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 	for f in fi {
 		append(&panel.files, f)
 	}
-}
 
-/*
-	Sets panel error text
-*/
-set_panel_error :: proc(panel: ^FilePanel, error: os.Error) {
-	delete(panel.last_error)
-	panel.last_error = fmt.tprintf("%v", error)
 }
 

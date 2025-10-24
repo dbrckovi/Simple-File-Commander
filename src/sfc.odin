@@ -14,7 +14,10 @@ _pid: posix.pid_t //This program's process ID
 _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
 
+_last_error: os.Error = nil
+
 main :: proc() {
+
 	_pid = posix.getpid()
 
 	init()
@@ -22,6 +25,7 @@ main :: proc() {
 	for _should_run {
 		draw()
 		update()
+		free_all(context.temp_allocator)
 	}
 
 	deinit_screen()
