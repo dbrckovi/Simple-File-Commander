@@ -3,7 +3,6 @@ package sfc
 import t "../lib/TermCL"
 import tb "../lib/TermCL/term"
 import "core:fmt"
-import "core:mem" //TODO: use something from it
 import "core:os"
 import "core:sys/posix"
 
@@ -13,6 +12,7 @@ _last_mouse_event: t.Mouse_Input //Last input received from mouse
 _pid: posix.pid_t //This program's process ID
 _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
+_current_theme: Theme
 
 _last_error: os.Error = nil
 
@@ -34,6 +34,7 @@ main :: proc() {
 init :: proc() {
 	init_screen()
 	init_panels()
+	reset_theme_to_default(&_current_theme)
 }
 
 init_panels :: proc() {

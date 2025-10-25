@@ -17,7 +17,6 @@ Rectangle :: struct {
 	h: int,
 }
 
-
 /*
 	Initializes the terminal screen
 */
@@ -46,6 +45,7 @@ deinit_screen :: proc() {
 	Periodically redraws entire screen
 */
 draw :: proc() {
+	t.set_color_style(&_screen, _current_theme.main.foreground, _current_theme.main.background)
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
 
@@ -54,24 +54,27 @@ draw :: proc() {
 
 
 /*
-	draws borders for main gui
+	Draws borders for main gui
 */
 draw_main_gui :: proc() {
 
 	main_splitter_x := uint(f32(_screen.size.w) * _splitter_fraction)
 	draw_command_area := _last_error != nil
 
-	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, .White, nil, true)
+	set_colors(_current_theme.main.foreground, _current_theme.main.background)
+
+	//main border
+	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, true)
 
 	//center
-	draw_vertical_line({int(main_splitter_x), 1}, int(_screen.size.h - 2), nil, nil, true)
+	draw_vertical_line({int(main_splitter_x), 1}, int(_screen.size.h - 2), true)
 	write("╦", {main_splitter_x, 0})
 	write("╩", {main_splitter_x, _screen.size.h - 1})
 
 	//command / error area
 	if draw_command_area {
 		command_area_top_y := _screen.size.h - 3
-		draw_horizontal_line({1, int(command_area_top_y)}, int(_screen.size.w) - 2, nil, nil, true)
+		draw_horizontal_line({1, int(command_area_top_y)}, int(_screen.size.w) - 2, true)
 		write("╠", {0, command_area_top_y})
 		write("╩", {main_splitter_x, command_area_top_y})
 		write("╣", {_screen.size.w - 1, command_area_top_y})
@@ -92,7 +95,7 @@ draw_main_gui :: proc() {
 
 	//panel bottom
 	panel_bottom_x := _screen.size.h - (draw_command_area ? 5 : 3)
-	draw_horizontal_line({1, int(panel_bottom_x)}, int(_screen.size.w) - 2, nil, nil, false)
+	draw_horizontal_line({1, int(panel_bottom_x)}, int(_screen.size.w) - 2, false)
 	write("╟", {0, panel_bottom_x})
 	write("╫", {main_splitter_x, panel_bottom_x})
 	write("╢", {_screen.size.w - 1, panel_bottom_x})
@@ -110,27 +113,82 @@ draw_main_gui :: proc() {
 */
 draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
-	/*
-	TODO:
-	- don't draw date and/or size if width is not enough for name
-	- don't draw files if length width is less than something (10?)
-	*/
+	panel_width := right - left
+	draw_date := panel_width >= 40
+	draw_size := panel_width >= 20
+	current_rightmost_border := right
+	date_left_x: uint
+	size_left_x: uint
+	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
 
-	date_left_x := right - 19
-	size_left_x := date_left_x - 10
+	panel.sort_column = .size
 
 	//date
-	draw_vertical_line({int(date_left_x), 1}, int(bottom - 1))
-	write("╤", {date_left_x, 0})
-	write("┴", {date_left_x, bottom})
+	if draw_date {
+		current_rightmost_border = current_rightmost_border - 19
+		date_left_x = current_rightmost_border
+		draw_vertical_line({int(date_left_x), 1}, int(bottom - 1))
+		write("╤", {date_left_x, 0})
+		write("┴", {date_left_x, bottom})
+
+		write(
+			"Date",
+			{date_left_x + 13, 1},
+			_current_theme.column_header.foreground,
+			_current_theme.column_header.background,
+		)
+		if panel.sort_column == .date {
+			write(
+				sort_char,
+				{date_left_x + 17, 1},
+				_current_theme.sort_indicator.foreground,
+				_current_theme.sort_indicator.background,
+			)
+		}
+	}
 
 	//size
+	if draw_size {
+		current_rightmost_border = current_rightmost_border - 10
+		size_left_x = current_rightmost_border
+		draw_vertical_line({int(size_left_x), 1}, int(bottom - 1))
+		write("╤", {size_left_x, 0})
+		write("┴", {size_left_x, bottom})
 
-	draw_vertical_line({int(size_left_x), 1}, int(bottom - 1))
-	write("╤", {size_left_x, 0})
-	write("┴", {size_left_x, bottom})
+		write(
+			"Size",
+			{size_left_x + 4, 1},
+			_current_theme.column_header.foreground,
+			_current_theme.column_header.background,
+		)
+		if panel.sort_column == .size {
+			write(
+				sort_char,
+				{size_left_x + 8, 1},
+				_current_theme.sort_indicator.foreground,
+				_current_theme.sort_indicator.background,
+			)
+		}
+	}
+
+	//current directory
+	write_cropped(panel.current_dir, {left + 2, 0}, nil, nil, right - 1)
 
 	//name
+	write(
+		"Name",
+		{left + 2, 1},
+		_current_theme.column_header.foreground,
+		_current_theme.column_header.background,
+	)
+	if panel.sort_column == .name {
+		write(
+			sort_char,
+			{left + 6, 1},
+			_current_theme.sort_indicator.foreground,
+			_current_theme.sort_indicator.background,
+		)
+	}
 }
 
 
@@ -145,9 +203,9 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 draw_horizontal_line :: proc(
 	point: [2]int,
 	length: int,
+	double_border := false,
 	foreground: t.Any_Color = nil,
 	background: t.Any_Color = nil,
-	double_border := false,
 ) {
 	x := point.x
 	y := point.y
@@ -177,9 +235,9 @@ draw_horizontal_line :: proc(
 draw_vertical_line :: proc(
 	point: [2]int,
 	length: int,
+	double_border := false,
 	foreground: t.Any_Color = nil,
 	background: t.Any_Color = nil,
-	double_border := false,
 ) {
 	x := point.x
 	y := point.y
@@ -200,9 +258,9 @@ draw_vertical_line :: proc(
 
 draw_rectangle :: proc(
 	rect: Rectangle,
+	double_border := false,
 	foreground: t.Any_Color = nil,
 	background: t.Any_Color = nil,
-	double_border := false,
 ) {
 	right := rect.x + rect.w - 1
 	bottom := rect.y + rect.h - 1
@@ -214,10 +272,10 @@ draw_rectangle :: proc(
 	write(double_border ? "╚" : "└", {uint(rect.x), uint(bottom)})
 	write(double_border ? "╝" : "┘", {uint(right), uint(bottom)})
 
-	draw_horizontal_line({rect.x + 1, rect.y}, rect.w - 2, nil, nil, double_border)
-	draw_horizontal_line({rect.x + 1, bottom}, rect.w - 2, nil, nil, double_border)
-	draw_vertical_line({rect.x, rect.y + 1}, rect.h - 2, nil, nil, double_border)
-	draw_vertical_line({right, rect.y + 1}, rect.h - 2, nil, nil, double_border)
+	draw_horizontal_line({rect.x + 1, rect.y}, rect.w - 2, double_border)
+	draw_horizontal_line({rect.x + 1, bottom}, rect.w - 2, double_border)
+	draw_vertical_line({rect.x, rect.y + 1}, rect.h - 2, double_border)
+	draw_vertical_line({right, rect.y + 1}, rect.h - 2, double_border)
 
 }
 
@@ -227,6 +285,8 @@ draw_rectangle :: proc(
  	- location: screen coordinates where text writing will start
  	- foreground: optional foreground color
  	- background: optional background color
+ 	- temp_colors: if true, after writing resets colors to previous values
+ 	
 
  	Note: if color is not defined, a last used color will be used
 */
@@ -235,7 +295,11 @@ write :: proc(
 	location: [2]uint,
 	foreground: t.Any_Color = nil,
 	background: t.Any_Color = nil,
+	temp_colors: bool = true,
 ) {
+	old_foreground := _last_foreground
+	old_background := _last_background
+
 	set_colors(foreground, background)
 	if location.y >= _screen.size.h || location.x >= _screen.size.w {
 		return
@@ -243,6 +307,10 @@ write :: proc(
 
 	move_cursor(location.x, location.y)
 	t.write(&_screen, text)
+
+	if temp_colors {
+		set_colors(old_foreground, old_background)
+	}
 }
 
 /*
