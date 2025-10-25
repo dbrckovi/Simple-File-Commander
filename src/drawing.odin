@@ -100,7 +100,6 @@ draw_main_gui :: proc() {
 	write("╫", {main_splitter_x, panel_bottom_x})
 	write("╢", {_screen.size.w - 1, panel_bottom_x})
 
-	//TODO: Focused panel tracking and highlight
 	draw_panel(&_left_panel, 0, main_splitter_x, panel_bottom_x)
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 }
@@ -121,29 +120,44 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	date_left_x: uint
 	size_left_x: uint
 	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
-
+	panel_inner_background := _current_theme.main.background
 	panel.sort_column = .size
+
+	//background
+	if _focused_panel == panel {
+		panel_inner_background = _current_theme.focused_panel.background
+		fill_rectangle(
+			{int(left + 1), 1, int(right - left - 1), int(bottom - 1)},
+			_current_theme.focused_panel.background,
+		)
+	}
 
 	//date
 	if draw_date {
 		current_rightmost_border = current_rightmost_border - 19
 		date_left_x = current_rightmost_border
-		draw_vertical_line({int(date_left_x), 1}, int(bottom - 1))
+		draw_vertical_line(
+			{int(date_left_x), 1},
+			int(bottom - 1),
+			false,
+			nil,
+			panel_inner_background,
+		)
 		write("╤", {date_left_x, 0})
-		write("┴", {date_left_x, bottom})
+		write("┴", {date_left_x, bottom}, nil, _current_theme.main.background)
 
 		write(
 			"Date",
 			{date_left_x + 13, 1},
 			_current_theme.column_header.foreground,
-			_current_theme.column_header.background,
+			panel_inner_background,
 		)
 		if panel.sort_column == .date {
 			write(
 				sort_char,
 				{date_left_x + 17, 1},
 				_current_theme.sort_indicator.foreground,
-				_current_theme.sort_indicator.background,
+				panel_inner_background,
 			)
 		}
 	}
@@ -152,22 +166,28 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	if draw_size {
 		current_rightmost_border = current_rightmost_border - 10
 		size_left_x = current_rightmost_border
-		draw_vertical_line({int(size_left_x), 1}, int(bottom - 1))
+		draw_vertical_line(
+			{int(size_left_x), 1},
+			int(bottom - 1),
+			false,
+			nil,
+			panel_inner_background,
+		)
 		write("╤", {size_left_x, 0})
-		write("┴", {size_left_x, bottom})
+		write("┴", {size_left_x, bottom}, nil, _current_theme.main.background)
 
 		write(
 			"Size",
 			{size_left_x + 4, 1},
 			_current_theme.column_header.foreground,
-			_current_theme.column_header.background,
+			panel_inner_background,
 		)
 		if panel.sort_column == .size {
 			write(
 				sort_char,
 				{size_left_x + 8, 1},
 				_current_theme.sort_indicator.foreground,
-				_current_theme.sort_indicator.background,
+				panel_inner_background,
 			)
 		}
 	}
@@ -176,18 +196,13 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	write_cropped(panel.current_dir, {left + 2, 0}, nil, nil, right - 1)
 
 	//name
-	write(
-		"Name",
-		{left + 2, 1},
-		_current_theme.column_header.foreground,
-		_current_theme.column_header.background,
-	)
+	write("Name", {left + 2, 1}, _current_theme.column_header.foreground, panel_inner_background)
 	if panel.sort_column == .name {
 		write(
 			sort_char,
 			{left + 6, 1},
 			_current_theme.sort_indicator.foreground,
-			_current_theme.sort_indicator.background,
+			panel_inner_background,
 		)
 	}
 }
@@ -278,6 +293,24 @@ draw_rectangle :: proc(
 	draw_vertical_line({rect.x, rect.y + 1}, rect.h - 2, double_border)
 	draw_vertical_line({right, rect.y + 1}, rect.h - 2, double_border)
 
+}
+
+fill_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = true) {
+	right := rect.x + rect.w - 1
+	bottom := rect.y + rect.h - 1
+
+	old_background := _last_background
+	set_colors(nil, color)
+
+	for x: int = rect.x; x <= right; x += 1 {
+		for y: int = rect.y; y <= bottom; y += 1 {
+			write(" ", {uint(x), uint(y)})
+		}
+	}
+
+	if temp_color {
+		set_colors(nil, old_background)
+	}
 }
 
 /*

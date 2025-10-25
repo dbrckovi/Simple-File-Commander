@@ -13,6 +13,7 @@ _pid: posix.pid_t //This program's process ID
 _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
 _current_theme: Theme
+_focused_panel: ^FilePanel
 
 _last_error: os.Error = nil
 
@@ -43,6 +44,8 @@ init_panels :: proc() {
 
 	_right_panel.current_dir = os.get_current_directory()
 	reload_file_panel(&_right_panel)
+
+	_focused_panel = &_left_panel
 }
 
 /*
@@ -63,6 +66,7 @@ update :: proc() {
 		case t.Keyboard_Input:
 			_last_keyboard_event = i
 			if i.key == .Escape do _should_run = false
+			if i.key == .Tab do swap_focused_panel()
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}
@@ -93,5 +97,9 @@ wait_for_interesting_event :: proc() -> (t.Input, bool) {
 	}
 
 	return input, screen_size_changed
+}
+
+swap_focused_panel :: proc() {
+	_focused_panel = _focused_panel == &_left_panel ? &_right_panel : &_left_panel
 }
 
