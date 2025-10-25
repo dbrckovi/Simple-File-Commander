@@ -100,6 +100,7 @@ draw_main_gui :: proc() {
 	write("╫", {main_splitter_x, panel_bottom_x})
 	write("╢", {_screen.size.w - 1, panel_bottom_x})
 
+	//TODO: Focused panel tracking and highlight
 	draw_panel(&_left_panel, 0, main_splitter_x, panel_bottom_x)
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 }

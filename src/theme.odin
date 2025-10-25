@@ -9,6 +9,7 @@ Theme :: struct {
 	main:           RgbPair,
 	column_header:  RgbPair,
 	sort_indicator: RgbPair,
+	focused_panel:  RgbPair,
 }
 
 /*
@@ -23,8 +24,11 @@ RgbPair :: struct {
 	Resets the specified theme colors to default
 */
 reset_theme_to_default :: proc(theme: ^Theme) {
-	theme.main.foreground = hex_to_rgb("#FFFFFF")
-	theme.main.background = hex_to_rgb("#0000FF")
+	theme.main.foreground = hex_to_rgb("#EEEEEE")
+	theme.main.background = hex_to_rgb("#252849")
+
+	theme.focused_panel.foreground = theme.main.foreground
+	theme.focused_panel.background = hex_to_rgb("#323350")
 
 	theme.column_header.foreground = hex_to_rgb("#DD9922")
 	theme.column_header.background = theme.main.background
