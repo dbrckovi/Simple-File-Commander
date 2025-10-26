@@ -16,25 +16,29 @@ Theme :: struct {
 	Foreground and background pair
 */
 RgbPair :: struct {
-	foreground: [3]u8,
-	background: [3]u8,
+	fg:     [3]u8,
+	use_fg: bool,
+	bg:     [3]u8,
+	use_bg: bool,
 }
 
 /*
 	Resets the specified theme colors to default
 */
 reset_theme_to_default :: proc(theme: ^Theme) {
-	theme.main.foreground = hex_to_rgb("#EEEEEE")
-	theme.main.background = hex_to_rgb("#252849")
+	theme.main.fg = hex_to_rgb("#EEEEEE")
+	theme.main.bg = hex_to_rgb("#252849")
+	theme.main.use_fg = true
+	theme.main.use_bg = true
 
-	theme.focused_panel.foreground = theme.main.foreground
-	theme.focused_panel.background = hex_to_rgb("#323350")
+	theme.focused_panel.bg = hex_to_rgb("#323350")
+	theme.main.use_bg = true
 
-	theme.column_header.foreground = hex_to_rgb("#DD9922")
-	theme.column_header.background = theme.main.background
+	theme.column_header.fg = hex_to_rgb("#DD9922")
+	theme.column_header.use_fg = true
 
-	theme.sort_indicator.foreground = hex_to_rgb("#FFDD55")
-	theme.sort_indicator.background = theme.main.background
+	theme.sort_indicator.fg = hex_to_rgb("#FFDD55")
+	theme.sort_indicator.use_fg = true
 }
 
 /*

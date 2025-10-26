@@ -45,7 +45,7 @@ deinit_screen :: proc() {
 	Periodically redraws entire screen
 */
 draw :: proc() {
-	t.set_color_style(&_screen, _current_theme.main.foreground, _current_theme.main.background)
+	t.set_color_style(&_screen, _current_theme.main.fg, _current_theme.main.bg)
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
 
@@ -61,7 +61,7 @@ draw_main_gui :: proc() {
 	main_splitter_x := uint(f32(_screen.size.w) * _splitter_fraction)
 	draw_command_area := _last_error != nil
 
-	set_colors(_current_theme.main.foreground, _current_theme.main.background)
+	set_color_pair(_current_theme.main)
 
 	//main border
 	draw_rectangle({0, 0, int(_screen.size.w), int(_screen.size.h)}, true)
@@ -83,13 +83,8 @@ draw_main_gui :: proc() {
 
 		if _last_error != nil {
 			error_message := fmt.tprintf("Error: %v", _last_error)
-			write_cropped(
-				error_message,
-				{2, command_area_top_y + 1},
-				.Red,
-				nil,
-				_screen.size.w - 2,
-			)
+			set_colors(.Red, nil)
+			write_cropped(error_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
 		}
 	}
 
@@ -113,6 +108,8 @@ draw_main_gui :: proc() {
 */
 draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
+	//TODO: Rethink color handling. This is too convoluted
+
 	panel_width := right - left
 	draw_date := panel_width >= 40
 	draw_size := panel_width >= 20
@@ -120,90 +117,62 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	date_left_x: uint
 	size_left_x: uint
 	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
-	panel_inner_background := _current_theme.main.background
-	panel.sort_column = .size
+	panel_inner_bg :=
+		_focused_panel == panel ? _current_theme.focused_panel.bg : _current_theme.main.bg
 
 	//background
-	if _focused_panel == panel {
-		panel_inner_background = _current_theme.focused_panel.background
-		fill_rectangle(
-			{int(left + 1), 1, int(right - left - 1), int(bottom - 1)},
-			_current_theme.focused_panel.background,
-		)
-	}
+	paint_rectangle({int(left + 1), 1, int(right - left - 1), int(bottom - 1)}, panel_inner_bg)
 
-	//date
+	//date column and lines
 	if draw_date {
 		current_rightmost_border = current_rightmost_border - 19
 		date_left_x = current_rightmost_border
-		draw_vertical_line(
-			{int(date_left_x), 1},
-			int(bottom - 1),
-			false,
-			nil,
-			panel_inner_background,
-		)
-		write("╤", {date_left_x, 0})
-		write("┴", {date_left_x, bottom}, nil, _current_theme.main.background)
 
-		write(
-			"Date",
-			{date_left_x + 13, 1},
-			_current_theme.column_header.foreground,
-			panel_inner_background,
-		)
+		set_colors(_current_theme.main.fg, panel_inner_bg)
+		draw_vertical_line({int(date_left_x), 1}, int(bottom - 1), false)
+
+		set_fg_color(_current_theme.column_header.fg)
+		write("Date", {date_left_x + 13, 1})
 		if panel.sort_column == .date {
-			write(
-				sort_char,
-				{date_left_x + 17, 1},
-				_current_theme.sort_indicator.foreground,
-				panel_inner_background,
-			)
+			set_fg_color(_current_theme.sort_indicator.fg)
+			write(sort_char, {date_left_x + 17, 1})
 		}
+
+		set_color_pair(_current_theme.main)
+		write("╤", {date_left_x, 0})
+		write("┴", {date_left_x, bottom})
 	}
 
-	//size
+	//size column and lines
 	if draw_size {
 		current_rightmost_border = current_rightmost_border - 10
 		size_left_x = current_rightmost_border
-		draw_vertical_line(
-			{int(size_left_x), 1},
-			int(bottom - 1),
-			false,
-			nil,
-			panel_inner_background,
-		)
-		write("╤", {size_left_x, 0})
-		write("┴", {size_left_x, bottom}, nil, _current_theme.main.background)
 
-		write(
-			"Size",
-			{size_left_x + 4, 1},
-			_current_theme.column_header.foreground,
-			panel_inner_background,
-		)
+		set_colors(_current_theme.main.fg, panel_inner_bg)
+		draw_vertical_line({int(size_left_x), 1}, int(bottom - 1), false)
+
+		set_fg_color(_current_theme.column_header.fg)
+		write("Size", {size_left_x + 4, 1})
 		if panel.sort_column == .size {
-			write(
-				sort_char,
-				{size_left_x + 8, 1},
-				_current_theme.sort_indicator.foreground,
-				panel_inner_background,
-			)
+			set_fg_color(_current_theme.sort_indicator.fg)
+			write(sort_char, {size_left_x + 8, 1})
 		}
+
+		set_color_pair(_current_theme.main)
+		write("╤", {size_left_x, 0})
+		write("┴", {size_left_x, bottom})
 	}
 
-	//current directory
-	write_cropped(panel.current_dir, {left + 2, 0}, nil, nil, right - 1)
+	//current directory label
+	write_cropped(panel.current_dir, {left + 2, 0}, right - 1)
 
 	//name
-	write("Name", {left + 2, 1}, _current_theme.column_header.foreground, panel_inner_background)
+	set_bg_color(panel_inner_bg)
+	set_fg_color(_current_theme.column_header.fg)
+	write("Name", {left + 2, 1})
 	if panel.sort_column == .name {
-		write(
-			sort_char,
-			{left + 6, 1},
-			_current_theme.sort_indicator.foreground,
-			panel_inner_background,
-		)
+		set_fg_color(_current_theme.sort_indicator.fg)
+		write(sort_char, {left + 6, 1})
 	}
 }
 
@@ -216,13 +185,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
  	- background: optional background color
 	- double_border: if true, draws double line instead of single
 */
-draw_horizontal_line :: proc(
-	point: [2]int,
-	length: int,
-	double_border := false,
-	foreground: t.Any_Color = nil,
-	background: t.Any_Color = nil,
-) {
+draw_horizontal_line :: proc(point: [2]int, length: int, double_border := false) {
 	x := point.x
 	y := point.y
 	length_normalized := length
@@ -248,13 +211,7 @@ draw_horizontal_line :: proc(
  	- background: optional background color
 	- double_border: if true, draws double line instead of single
 */
-draw_vertical_line :: proc(
-	point: [2]int,
-	length: int,
-	double_border := false,
-	foreground: t.Any_Color = nil,
-	background: t.Any_Color = nil,
-) {
+draw_vertical_line :: proc(point: [2]int, length: int, double_border := false) {
 	x := point.x
 	y := point.y
 	length_normalized := length
@@ -268,20 +225,13 @@ draw_vertical_line :: proc(
 	}
 
 	for i: uint = uint(max(y, 0)); i < min(uint(y + length_normalized), _screen.size.h); i += 1 {
-		write(double_border ? "║" : "│", {uint(x), i}, foreground, background)
+		write(double_border ? "║" : "│", {uint(x), i})
 	}
 }
 
-draw_rectangle :: proc(
-	rect: Rectangle,
-	double_border := false,
-	foreground: t.Any_Color = nil,
-	background: t.Any_Color = nil,
-) {
+draw_rectangle :: proc(rect: Rectangle, double_border := false) {
 	right := rect.x + rect.w - 1
 	bottom := rect.y + rect.h - 1
-
-	set_colors(foreground, background)
 
 	write(double_border ? "╔" : "┌", {uint(rect.x), uint(rect.y)})
 	write(double_border ? "╗" : "┐", {uint(right), uint(rect.y)})
@@ -295,7 +245,7 @@ draw_rectangle :: proc(
 
 }
 
-fill_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = true) {
+paint_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = true) {
 	right := rect.x + rect.w - 1
 	bottom := rect.y + rect.h - 1
 
@@ -324,40 +274,19 @@ fill_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = t
 
  	Note: if color is not defined, a last used color will be used
 */
-write :: proc(
-	text: string,
-	location: [2]uint,
-	foreground: t.Any_Color = nil,
-	background: t.Any_Color = nil,
-	temp_colors: bool = true,
-) {
-	old_foreground := _last_foreground
-	old_background := _last_background
-
-	set_colors(foreground, background)
+write :: proc(text: string, location: [2]uint) {
 	if location.y >= _screen.size.h || location.x >= _screen.size.w {
 		return
 	}
 
 	move_cursor(location.x, location.y)
 	t.write(&_screen, text)
-
-	if temp_colors {
-		set_colors(old_foreground, old_background)
-	}
 }
-
 /*
 Writes string to screen, cropping it at screen width, or at custom 'max_width'
 */
 
-write_cropped :: proc(
-	text: string,
-	location: [2]uint,
-	foreground: t.Any_Color = nil,
-	background: t.Any_Color = nil,
-	max_width: uint = 0,
-) {
+write_cropped :: proc(text: string, location: [2]uint, max_width: uint = 0) {
 	crop_column: uint = _screen.size.w
 
 	if max_width > 0 && max_width < _screen.size.w && location.x <= max_width {
@@ -368,10 +297,9 @@ write_cropped :: proc(
 
 	move_cursor(location.x, location.y)
 	if len(text) > int(space_available) {
-		write(text[:space_available], location, foreground, background)
+		write(text[:space_available], location)
 	} else {
-		write(text, location, foreground, background)
-		// t.write(&_screen, text)
+		write(text, location)
 	}
 }
 
@@ -379,13 +307,24 @@ write_cropped :: proc(
 	Sets new color style.
 	Only replaces colors which are not 'nil' and if they are different than last used values
 */
-
 set_colors :: proc(foreground: t.Any_Color = nil, background: t.Any_Color = nil) {
 	if foreground != nil || background != nil {
 		if foreground != nil do _last_foreground = foreground
 		if background != nil do _last_background = background
 		t.set_color_style(&_screen, _last_foreground, _last_background)
 	}
+}
+
+set_color_pair :: proc(pair: RgbPair) {
+	set_colors(pair.use_fg ? pair.fg : nil, pair.use_bg ? pair.bg : nil)
+}
+
+set_fg_color :: proc(color: [3]u8) {
+	set_colors(color, nil)
+}
+
+set_bg_color :: proc(color: [3]u8) {
+	set_colors(nil, color)
 }
 
 /*
