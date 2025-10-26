@@ -45,7 +45,7 @@ deinit_screen :: proc() {
 	Periodically redraws entire screen
 */
 draw :: proc() {
-	t.set_color_style(&_screen, _current_theme.main.fg, _current_theme.main.bg)
+	set_color_pair(_current_theme.main)
 	t.clear(&_screen, .Everything)
 	defer t.blit(&_screen)
 
@@ -83,13 +83,14 @@ draw_main_gui :: proc() {
 
 		if _last_error != nil {
 			error_message := fmt.tprintf("Error: %v", _last_error)
-			set_colors(.Red, nil)
+			set_color_pair(_current_theme.error_message)
 			write_cropped(error_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
 		}
 	}
 
 	//panel bottom
 	panel_bottom_x := _screen.size.h - (draw_command_area ? 5 : 3)
+	set_color_pair(_current_theme.main)
 	draw_horizontal_line({1, int(panel_bottom_x)}, int(_screen.size.w) - 2, false)
 	write("╟", {0, panel_bottom_x})
 	write("╫", {main_splitter_x, panel_bottom_x})
@@ -116,6 +117,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	current_rightmost_border := right
 	date_left_x: uint
 	size_left_x: uint
+	name_left_x: uint = left + 2
 	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
 	panel_inner_bg :=
 		_focused_panel == panel ? _current_theme.focused_panel.bg : _current_theme.main.bg
@@ -163,19 +165,52 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 		write("┴", {size_left_x, bottom})
 	}
 
-	//current directory label
-	write_cropped(panel.current_dir, {left + 2, 0}, right - 1)
-
-	//name
+	//name column
 	set_bg_color(panel_inner_bg)
 	set_fg_color(_current_theme.column_header.fg)
-	write("Name", {left + 2, 1})
+	write("Name", {name_left_x, 1})
 	if panel.sort_column == .name {
 		set_fg_color(_current_theme.sort_indicator.fg)
 		write(sort_char, {left + 6, 1})
 	}
-}
 
+	//current directory label
+	set_colors(_current_theme.directory_text.fg, _current_theme.main.bg)
+	write_cropped(panel.current_dir, {left + 2, 0}, right - 1, true)
+
+	set_bg_color(panel_inner_bg)
+
+	// .. (up) directory
+	set_colors(_current_theme.main.fg, panel_inner_bg)
+	write("[  ]", {name_left_x, 2})
+	set_fg_color(_current_theme.directory_text.fg)
+	write("..", {name_left_x + 1, 2})
+
+	if draw_size {
+		set_fg_color(_current_theme.main.fg)
+		write("-TODO-", {size_left_x + 2, 2})
+	}
+
+	if draw_date {
+		set_fg_color(_current_theme.main.fg)
+		write("-TODO-", {date_left_x + 6, 2})
+	}
+
+	//all other files
+	if len(panel.files) > 0 {
+		last_file_index := len(panel.files) - 1
+		max_visible_files := int(bottom) - 4
+		if last_file_index - panel.first_file_index + 1 > max_visible_files {
+			last_file_index = panel.first_file_index + max_visible_files - 1
+		}
+
+		current_row := 3
+		for file_index in panel.first_file_index ..= last_file_index {
+			write(fmt.tprint(panel.files[file_index].name), {left + 2, uint(current_row)})
+			current_row += 1
+		}
+	}
+}
 
 /*
 	Draws hoizontal line
@@ -285,19 +320,31 @@ write :: proc(text: string, location: [2]uint) {
 /*
 Writes string to screen, cropping it at screen width, or at custom 'max_width'
 */
-
-write_cropped :: proc(text: string, location: [2]uint, max_width: uint = 0) {
-	crop_column: uint = _screen.size.w
+write_cropped :: proc(
+	text: string,
+	location: [2]uint,
+	max_width: uint = 0,
+	align_right: bool = false,
+) {
+	crop_at_column: uint = _screen.size.w
 
 	if max_width > 0 && max_width < _screen.size.w && location.x <= max_width {
-		crop_column = max_width
+		crop_at_column = max_width
 	}
 
-	space_available := crop_column - location.x
+	space_available := crop_at_column - location.x
 
 	move_cursor(location.x, location.y)
 	if len(text) > int(space_available) {
-		write(text[:space_available], location)
+
+		slice: string
+		if align_right {
+			slice = fmt.tprint(text[uint(len(text)) - space_available:])
+		} else {
+			slice = fmt.tprint(text[:space_available])
+		}
+		write(slice, location)
+
 	} else {
 		write(text, location)
 	}

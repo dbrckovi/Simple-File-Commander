@@ -18,6 +18,7 @@ _focused_panel: ^FilePanel
 _last_error: os.Error = nil
 
 main :: proc() {
+	_last_error = .Broken_Pipe
 
 	_pid = posix.getpid()
 
@@ -40,9 +41,11 @@ init :: proc() {
 
 init_panels :: proc() {
 	_left_panel.current_dir = os.get_current_directory()
+	_left_panel.files = make([dynamic]os.File_Info, 0, context.allocator)
 	reload_file_panel(&_left_panel)
 
 	_right_panel.current_dir = os.get_current_directory()
+	_right_panel.files = make([dynamic]os.File_Info, 0, context.allocator)
 	reload_file_panel(&_right_panel)
 
 	_focused_panel = &_left_panel
