@@ -183,7 +183,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	// .. (up) directory
 	set_colors(_current_theme.main.fg, panel_inner_bg)
 	write("[  ]", {name_left_x, 2})
-	set_fg_color(_current_theme.directory_text.fg)
+	set_fg_color(_current_theme.file_directory.fg)
 	write("..", {name_left_x + 1, 2})
 
 	if draw_size {
@@ -206,7 +206,18 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 		current_row := 3
 		for file_index in panel.first_file_index ..= last_file_index {
-			write(fmt.tprint(panel.files[file_index].name), {left + 2, uint(current_row)})
+			info := panel.files[file_index]
+			if info.is_dir {
+				set_fg_color(_current_theme.main.fg)
+				write("[", {left + 2, uint(current_row)})
+				set_fg_color(_current_theme.file_directory.fg)
+				write(fmt.tprint(info.name), {left + 3, uint(current_row)})
+				set_fg_color(_current_theme.main.fg)
+				write("]", {left + 3 + len(info.name), uint(current_row)})
+			} else {
+				set_fg_color(_current_theme.file_normal.fg)
+				write(fmt.tprint(info.name), {left + 2, uint(current_row)})
+			}
 			current_row += 1
 		}
 	}
