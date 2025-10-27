@@ -178,24 +178,6 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	set_colors(_current_theme.directory_text.fg, _current_theme.main.bg)
 	write_cropped(panel.current_dir, {left + 2, 0}, right - 1, true)
 
-	set_bg_color(panel_inner_bg)
-
-	// .. (up) directory
-	set_colors(_current_theme.main.fg, panel_inner_bg)
-	write("[  ]", {name_left_x, 2})
-	set_fg_color(_current_theme.file_directory.fg)
-	write("..", {name_left_x + 1, 2})
-
-	if draw_size {
-		set_fg_color(_current_theme.main.fg)
-		write("-TODO-", {size_left_x + 2, 2})
-	}
-
-	if draw_date {
-		set_fg_color(_current_theme.main.fg)
-		write("-TODO-", {date_left_x + 6, 2})
-	}
-
 	//all other files
 	if len(panel.files) > 0 {
 		last_file_index := len(panel.files) - 1
@@ -204,9 +186,25 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			last_file_index = panel.first_file_index + max_visible_files - 1
 		}
 
-		current_row := 3
+		current_row := 2
 		for file_index in panel.first_file_index ..= last_file_index {
+			is_focused := current_row - 2 == panel.focused_row_index && _focused_panel == panel
+			if (is_focused) {
+				set_bg_color(_current_theme.focused_file_row.bg)
+			} else {
+				set_bg_color(panel_inner_bg)
+			}
+
 			info := panel.files[file_index]
+
+			if is_focused {
+				paint_rectangle(
+					{int(left) + 1, current_row, int(current_rightmost_border - left) - 1, 1},
+					_current_theme.focused_file_row.bg,
+					true,
+				)
+			}
+
 			if info.is_dir {
 				set_fg_color(_current_theme.main.fg)
 				write("[", {left + 2, uint(current_row)})

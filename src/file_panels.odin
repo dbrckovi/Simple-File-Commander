@@ -7,11 +7,12 @@ import "core:sort"
 import "core:strings"
 
 FilePanel :: struct {
-	current_dir:      string,
-	files:            [dynamic]os.File_Info,
-	first_file_index: int,
-	sort_column:      SortColumn,
-	sort_direction:   SortDirection,
+	current_dir:       string,
+	files:             [dynamic]os.File_Info,
+	first_file_index:  int,
+	sort_column:       SortColumn,
+	sort_direction:    SortDirection,
+	focused_row_index: int, //focused row counting from line below column header (first visible file is 0)
 }
 
 SortColumn :: enum {
@@ -45,6 +46,15 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 	defer delete(fi)
 
 	clear(&panel.files)
+
+	parent_dir_info: os.File_Info = {
+		fullpath = filepath.dir(panel.current_dir, context.allocator),
+		name     = strings.clone("..", context.allocator),
+		size     = 0,
+		mode     = os.File_Mode_Dir,
+		is_dir   = true,
+	}
+	append(&panel.files, parent_dir_info)
 
 	for f in fi {
 		//deep copy strngs because they are allocated internally by os.read_dir
