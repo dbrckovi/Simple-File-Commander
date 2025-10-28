@@ -62,6 +62,9 @@ update :: proc() {
 	if screen_size_changed {
 		deinit_screen()
 		init_screen()
+
+		recalculate_indexes(&_left_panel)
+		recalculate_indexes(&_right_panel)
 	}
 
 	if input != nil {
@@ -72,9 +75,9 @@ update :: proc() {
 			_last_keyboard_event = i
 			if i.key == .Escape do _should_run = false
 			if i.key == .Tab do swap_focused_panel()
-			if i.key == .Backspace {
-				cd_up(_focused_panel)
-			}
+			if i.key == .Backspace do cd_up(_focused_panel)
+			if i.key == .K do move_file_focus(1)
+			if i.key == .I do move_file_focus(-1)
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}

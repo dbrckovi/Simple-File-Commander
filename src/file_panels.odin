@@ -65,7 +65,14 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 		//So creating a new variable which holds cloned strings is "better practice".
 		file_info_copy := f
 		file_info_copy.name = strings.clone(f.name, context.allocator)
-		file_info_copy.fullpath = strings.clone(f.fullpath, context.allocator)
+
+		if strings.starts_with(f.fullpath, "//") {
+			//workaround for what seems to be a bug on os package. For some reason it returns double // in root directory.
+			// TODO: investigate or report
+			file_info_copy.fullpath = strings.clone(f.fullpath[1:], context.allocator)
+		} else {
+			file_info_copy.fullpath = strings.clone(f.fullpath, context.allocator)
+		}
 		append(&panel.files, file_info_copy)
 	}
 
@@ -76,16 +83,37 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 /*
 	Changes current directory of specified panel one level up
 */
-cd_up :: proc(panel: ^FilePanel) -> bool {
+cd_up :: proc(panel: ^FilePanel) {
 	parent_dir := filepath.dir(panel.current_dir, context.allocator)
 
-	error := cd(panel, parent_dir)
-
-	if error != os.General_Error.None {
-		return false
+	if strings.equal_fold(parent_dir, panel.current_dir) {
+		return
 	}
 
-	return true
+	max_visible_files := get_max_visible_files()
+	max_visible_index := max_visible_files - 1
+	came_from_dir := strings.clone(panel.current_dir)
+	error := cd(panel, parent_dir)
+
+	loop: for file, index in panel.files {
+		if strings.equal_fold(file.fullpath, came_from_dir) {
+			if index <= max_visible_index {
+				panel.focused_row_index = index
+			} else {
+				panel.focused_row_index = max_visible_index
+				panel.first_file_index = index - max_visible_files + 1
+			}
+
+			break loop
+		}
+	}
+
+	//TODO: Ensure that directory from where we came from is now visible and focused
+
+	if error != os.General_Error.None {
+		_last_error = error
+	}
+
 }
 
 /*
@@ -102,7 +130,10 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 
 	delete(panel.current_dir)
 	panel.current_dir = directory
+
 	reload_file_panel(panel)
+	panel.first_file_index = 0
+	panel.focused_row_index = 0
 
 	return os.General_Error.None
 }
@@ -143,5 +174,103 @@ sort_files :: proc(panel: ^FilePanel) {
 		    sort.quick_sort_proc_context(panel.files[:], compare_proc, &ctx)
 		}
 	*/
+}
+
+/*
+	Moves file focused_row_index of currently active panel up or down.
+	Takes care not to overshoot.
+	- amount: how many places to move. negative moves up. 0 is ignored
+*/
+move_file_focus :: proc(amount: int) {
+	if amount == 0 do return
+
+
+	max_files := get_max_visible_files()
+	max_focus_index := max_files - 1
+	_focused_panel.focused_row_index += amount
+	files_below_line := len(_focused_panel.files) - max_files - _focused_panel.first_file_index
+	if files_below_line < 0 {
+		files_below_line = 0
+	}
+
+	if _focused_panel.focused_row_index < 0 {
+		// when focus moves up below 0
+		overshoot := -_focused_panel.focused_row_index
+		_focused_panel.first_file_index -= overshoot
+		if _focused_panel.first_file_index < 0 {
+			_focused_panel.first_file_index = 0
+		}
+		_focused_panel.focused_row_index = 0
+	} else if _focused_panel.focused_row_index > len(_focused_panel.files) - 1 {
+		//when focus moves below last file index
+		_focused_panel.focused_row_index = len(_focused_panel.files) - 1
+	} else if (_focused_panel.focused_row_index > max_focus_index) {
+		//when focus moves down below bottom and and there
+		if files_below_line > 0 {
+			overshoot := _focused_panel.focused_row_index - max_focus_index
+			if overshoot > files_below_line {
+				overshoot = files_below_line
+			}
+
+			_focused_panel.first_file_index += overshoot
+		}
+		_focused_panel.focused_row_index = max_focus_index
+	}
+
+}
+
+
+get_focused_file_index :: proc() -> int {
+	return _focused_panel.focused_row_index + _focused_panel.first_file_index
+}
+
+/*
+	Adjusts first_file_index and focused_row_index of specified panel.
+	Used after resolution change to ensure:
+	 - focus line must be inside panel and on a file
+	 - there must not be space above first file
+	 - there must not be free space at the bottom if there are files above 0 line
+	 - if possible, keep the focus on the same file
+*/
+recalculate_indexes :: proc(panel: ^FilePanel) {
+
+	/*
+	There are 2 possible cases:
+
+	1 panel is now larger, there are files above the 0 line, but there is available space below
+	 -> move files and focus row down by the same amount
+
+	2 panel is now smaller and focus line is outside panel (below)
+	 -> move focus line and all files up by the missing amout
+	*/
+
+	/*
+	first_file_index:  int,
+	focused_row_index: int,
+	*/
+
+	max_visible_files := get_max_visible_files()
+	max_focus_index := max_visible_files - 1
+
+	if max_focus_index < 0 do return //special case when files don't fit on screen
+
+	if panel.first_file_index > 0 &&
+	   len(panel.files) - panel.first_file_index < max_visible_files {
+		//case 1: panel is larger (read above)
+		amount_to_move := max_visible_files - (len(panel.files) - panel.first_file_index)
+		if amount_to_move > panel.first_file_index {
+			amount_to_move = panel.first_file_index
+		}
+		panel.first_file_index -= amount_to_move
+		panel.focused_row_index += amount_to_move
+	}
+
+	if panel.focused_row_index > max_focus_index {
+		//case 2: panel is smaller (read above)
+		amount_to_move := panel.focused_row_index - max_focus_index
+		panel.first_file_index += amount_to_move
+		panel.focused_row_index = max_focus_index
+	}
+
 }
 

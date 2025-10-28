@@ -59,7 +59,7 @@ draw :: proc() {
 draw_main_gui :: proc() {
 
 	main_splitter_x := uint(f32(_screen.size.w) * _splitter_fraction)
-	draw_command_area := _last_error != nil
+	draw_command_area := should_draw_command_area()
 
 	set_color_pair(_current_theme.main)
 
@@ -115,9 +115,9 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	draw_date := panel_width >= 40
 	draw_size := panel_width >= 20
 	current_rightmost_border := right
-	date_left_x: uint
-	size_left_x: uint
-	name_left_x: uint = left + 2
+	date_left_border_x: uint // left border of date column (if it exists)
+	size_left_border_x: uint // left border of si
+	name_label_left_x: uint = left + 2 //x coordinate for name column text and file names
 	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
 	panel_inner_bg :=
 		_focused_panel == panel ? _current_theme.focused_panel.bg : _current_theme.main.bg
@@ -128,47 +128,47 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	//date column and lines
 	if draw_date {
 		current_rightmost_border = current_rightmost_border - 19
-		date_left_x = current_rightmost_border
+		date_left_border_x = current_rightmost_border
 
 		set_colors(_current_theme.main.fg, panel_inner_bg)
-		draw_vertical_line({int(date_left_x), 1}, int(bottom - 1), false)
+		draw_vertical_line({int(date_left_border_x), 1}, int(bottom - 1), false)
 
 		set_fg_color(_current_theme.column_header.fg)
-		write("Date", {date_left_x + 13, 1})
+		write("Date", {date_left_border_x + 13, 1})
 		if panel.sort_column == .date {
 			set_fg_color(_current_theme.sort_indicator.fg)
-			write(sort_char, {date_left_x + 17, 1})
+			write(sort_char, {date_left_border_x + 17, 1})
 		}
 
 		set_color_pair(_current_theme.main)
-		write("╤", {date_left_x, 0})
-		write("┴", {date_left_x, bottom})
+		write("╤", {date_left_border_x, 0})
+		write("┴", {date_left_border_x, bottom})
 	}
 
 	//size column and lines
 	if draw_size {
 		current_rightmost_border = current_rightmost_border - 10
-		size_left_x = current_rightmost_border
+		size_left_border_x = current_rightmost_border
 
 		set_colors(_current_theme.main.fg, panel_inner_bg)
-		draw_vertical_line({int(size_left_x), 1}, int(bottom - 1), false)
+		draw_vertical_line({int(size_left_border_x), 1}, int(bottom - 1), false)
 
 		set_fg_color(_current_theme.column_header.fg)
-		write("Size", {size_left_x + 4, 1})
+		write("Size", {size_left_border_x + 4, 1})
 		if panel.sort_column == .size {
 			set_fg_color(_current_theme.sort_indicator.fg)
-			write(sort_char, {size_left_x + 8, 1})
+			write(sort_char, {size_left_border_x + 8, 1})
 		}
 
 		set_color_pair(_current_theme.main)
-		write("╤", {size_left_x, 0})
-		write("┴", {size_left_x, bottom})
+		write("╤", {size_left_border_x, 0})
+		write("┴", {size_left_border_x, bottom})
 	}
 
 	//name column
 	set_bg_color(panel_inner_bg)
 	set_fg_color(_current_theme.column_header.fg)
-	write("Name", {name_left_x, 1})
+	write("Name", {name_label_left_x, 1})
 	if panel.sort_column == .name {
 		set_fg_color(_current_theme.sort_indicator.fg)
 		write(sort_char, {left + 6, 1})
@@ -181,7 +181,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	//all other files
 	if len(panel.files) > 0 {
 		last_file_index := len(panel.files) - 1
-		max_visible_files := int(bottom) - 4
+		max_visible_files := get_max_visible_files()
 		if last_file_index - panel.first_file_index + 1 > max_visible_files {
 			last_file_index = panel.first_file_index + max_visible_files - 1
 		}
@@ -219,6 +219,11 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			current_row += 1
 		}
 	}
+
+	//panel summary line
+	summary_y := bottom + 1
+	msg := fmt.tprintf("%i", panel.focused_row_index)
+	write(msg, {left + 2, summary_y})
 }
 
 /*
@@ -388,5 +393,15 @@ set_bg_color :: proc(color: [3]u8) {
 */
 move_cursor :: proc(x, y: uint) {
 	t.move_cursor(&_screen, y, x)
+}
+
+should_draw_command_area :: proc() -> bool {
+	return _last_error != nil
+}
+
+get_max_visible_files :: proc() -> int {
+	ret := _screen.size.h - 5
+	if should_draw_command_area() do ret -= 2
+	return int(ret)
 }
 
