@@ -177,11 +177,11 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 		write(sort_char, {left + 6, 1})
 	}
 
-	//current directory label
-	set_colors(_current_theme.directory_text.fg, _current_theme.main.bg)
+	//panel title (current directory label)
+	set_colors(_current_theme.panel_title.fg, _current_theme.main.bg)
 	write_cropped(panel.current_dir, {left + 2, 0}, right - 1, true)
 
-	//all other files
+	//files
 	if len(panel.files) > 0 {
 		last_file_index := len(panel.files) - 1
 		max_visible_files := get_max_visible_files()
@@ -211,12 +211,23 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			if info.is_dir {
 				set_fg_color(_current_theme.main.fg)
 				write("[", {left + 2, uint(current_row)})
-				set_fg_color(_current_theme.file_directory.fg)
+
+				if strings.starts_with(info.name, ".") {
+					set_fg_color(_current_theme.directory_hidden.fg)
+				} else {
+					set_fg_color(_current_theme.directory_normal.fg)
+				}
+
 				write(fmt.tprint(info.name), {left + 3, uint(current_row)})
+
 				set_fg_color(_current_theme.main.fg)
 				write("]", {left + 3 + len(info.name), uint(current_row)})
 			} else {
-				set_fg_color(_current_theme.file_normal.fg)
+				if strings.starts_with(info.name, ".") {
+					set_fg_color(_current_theme.file_hidden.fg)
+				} else {
+					set_fg_color(_current_theme.file_normal.fg)
+				}
 				write(fmt.tprint(info.name), {left + 2, uint(current_row)})
 			}
 			current_row += 1
@@ -281,6 +292,9 @@ draw_vertical_line :: proc(point: [2]int, length: int, double_border := false) {
 	}
 }
 
+/*
+	Draws a rectangle
+*/
 draw_rectangle :: proc(rect: Rectangle, double_border := false) {
 	right := rect.x + rect.w - 1
 	bottom := rect.y + rect.h - 1
@@ -297,6 +311,12 @@ draw_rectangle :: proc(rect: Rectangle, double_border := false) {
 
 }
 
+/*
+	Sets background color to specified rectangular region
+	- rect: region
+	- color: color to use as background
+	- temp_color: if true, reverts _last_background to previous value after painting
+*/
 paint_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = true) {
 	right := rect.x + rect.w - 1
 	bottom := rect.y + rect.h - 1

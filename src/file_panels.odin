@@ -92,11 +92,12 @@ cd_up :: proc(panel: ^FilePanel) {
 
 	max_visible_files := get_max_visible_files()
 	max_visible_index := max_visible_files - 1
-	came_from_dir := strings.clone(panel.current_dir)
+	came_from_dir := strings.clone(panel.current_dir, context.temp_allocator)
 	error := cd(panel, parent_dir)
 
+	//focus directory from which we came
 	loop: for file, index in panel.files {
-		if strings.equal_fold(file.fullpath, came_from_dir) {
+		if strings.compare(file.fullpath, came_from_dir) == 0 {
 			if index <= max_visible_index {
 				panel.focused_row_index = index
 			} else {
@@ -107,8 +108,6 @@ cd_up :: proc(panel: ^FilePanel) {
 			break loop
 		}
 	}
-
-	//TODO: Ensure that directory from where we came from is now visible and focused
 
 	if error != os.General_Error.None {
 		_last_error = error
@@ -138,42 +137,66 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 	return os.General_Error.None
 }
 
-
 sort_files :: proc(panel: ^FilePanel) {
-	// TODO: Implement sort
-	// AI suggests this:
-	/*
-		import "core:sort"
+	compare_proc := compare_file_info_by_name_asc
+	if panel.sort_direction == .descending {
+		compare_proc = compare_file_info_by_name_desc
+	}
 
-		SortContext :: struct {
-		    sort_column: SortColumn,
-		    sort_direction: SortDirection,
-		}
+	sort.quick_sort_proc(panel.files[:], compare_proc)
+}
 
-		compare_proc :: proc(a, b: os.File_Info, ctx: rawptr) -> int {
-		    context.user_ptr = ctx
-		    sc := cast(^SortContext)ctx
-		    if a.is_dir != b.is_dir {
-		        return sc.sort_direction == .Ascending ? (a.is_dir && !b.is_dir ? -1 : 1) : (a.is_dir && !b.is_dir ? 1 : -1)
-		    }
-		    switch sc.sort_column {
-		    case .Name:
-		        return sc.sort_direction == .Ascending ? cmp(a.name, b.name) : cmp(b.name, a.name)
-		    case .Size:
-		        return sc.sort_direction == .Ascending ? cmp(a.size, b.size) : cmp(b.size, a.size)
-		    }
-		    return 0
-		}
+/*
+			if 'A' <= c && c <= 'Z' {
+				c += 'a' - 'A'
+			}
+*/
 
-		cmp :: proc(a, b: $T) -> int where intrinsics.type_is_ordered(T) {
-		    return a < b ? -1 : (a > b ? 1 : 0)
-		}
+enforce_directories_first :: proc(a, b: os.File_Info) -> (int, bool) {
+	if a.name == ".." {
+		return -1, true
+	}
 
-		sort_files :: proc(panel: ^FilePanel) {
-		    ctx := SortContext{panel.sort_column, panel.sort_direction}
-		    sort.quick_sort_proc_context(panel.files[:], compare_proc, &ctx)
-		}
-	*/
+	if b.name == ".." {
+		return 1, true
+	}
+
+	if a.is_dir && !b.is_dir {
+		return -1, true
+	}
+
+	if b.is_dir && !a.is_dir {
+		return 1, true
+	}
+
+	return 0, false
+}
+
+compare_file_info_by_name_asc :: proc(a, b: os.File_Info) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return compare_file_name(a.name, b.name)
+}
+
+compare_file_info_by_name_desc :: proc(a, b: os.File_Info) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return -compare_file_name(a.name, b.name)
+}
+
+
+compare_file_info_by_date :: proc(a, b: os.File_Info) -> int {
+	panic("Unimplemented")
+}
+
+compare_file_info_by_size :: proc(a, b: os.File_Info) -> int {
+	panic("Unimplemented")
 }
 
 /*

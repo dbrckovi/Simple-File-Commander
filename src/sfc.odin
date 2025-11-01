@@ -77,7 +77,14 @@ update :: proc() {
 			if i.key == .Backspace do cd_up(_focused_panel)
 			if i.key == .K do move_file_focus(1)
 			if i.key == .I do move_file_focus(-1)
-			if i.key == .Enter do activate_focused_item()
+			if i.key == .Enter do activate_focused_file_info()
+			if i.key == .Space {
+				_focused_panel.sort_direction =
+					_focused_panel.sort_direction == .ascending ? .descending : .ascending
+				reload_file_panel(_focused_panel)
+				_focused_panel.first_file_index = 0
+				_focused_panel.focused_row_index = 0
+			}
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}

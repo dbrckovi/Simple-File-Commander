@@ -13,11 +13,13 @@ Theme :: struct {
 	focused_file_row: RgbPair,
 	error_message:    RgbPair,
 	debug_message:    RgbPair,
-	directory_text:   RgbPair,
+	panel_title:      RgbPair,
+	directory_normal: RgbPair,
+	directory_hidden: RgbPair,
 	file_normal:      RgbPair,
 	file_executable:  RgbPair,
-	file_directory:   RgbPair,
-	//TODO: system, hidden, etc
+	file_hidden:      RgbPair,
+	//TODO: system,  etc
 }
 
 /*
@@ -48,8 +50,14 @@ reset_theme_to_default :: proc(theme: ^Theme) {
 	theme.column_header.fg = hex_to_rgb("#DD9922")
 	theme.column_header.use_fg = true
 
-	theme.directory_text.fg = hex_to_rgb("#99DD22")
-	theme.directory_text.use_fg = true
+	theme.panel_title.fg = hex_to_rgb("#CCCC22")
+	theme.panel_title.use_fg = true
+
+	theme.directory_normal.fg = hex_to_rgb("#CCCC22")
+	theme.directory_normal.use_fg = true
+
+	theme.directory_hidden.fg = hex_to_rgb("#AAAA99")
+	theme.directory_hidden.use_fg = true
 
 	theme.sort_indicator.fg = hex_to_rgb("#FFDD55")
 	theme.sort_indicator.use_fg = true
@@ -66,8 +74,8 @@ reset_theme_to_default :: proc(theme: ^Theme) {
 	theme.file_executable.fg = hex_to_rgb("#22FF22")
 	theme.file_executable.use_fg = true
 
-	theme.file_directory.fg = hex_to_rgb("#BBBB22")
-	theme.file_directory.use_fg = true
+	theme.file_hidden.fg = hex_to_rgb("#9999CC")
+	theme.file_hidden.use_fg = true
 }
 
 /*
