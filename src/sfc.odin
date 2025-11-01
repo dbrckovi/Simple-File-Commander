@@ -17,10 +17,9 @@ _current_theme: Theme
 _focused_panel: ^FilePanel
 
 _last_error: os.Error = nil
+_debug_message: string = {}
 
 main :: proc() {
-	_last_error = .Broken_Pipe
-
 	_pid = posix.getpid()
 
 	init()
@@ -78,6 +77,7 @@ update :: proc() {
 			if i.key == .Backspace do cd_up(_focused_panel)
 			if i.key == .K do move_file_focus(1)
 			if i.key == .I do move_file_focus(-1)
+			if i.key == .Enter do activate_focused_item()
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}
@@ -109,7 +109,15 @@ wait_for_interesting_event :: proc() -> (t.Input, bool) {
 	return input, screen_size_changed
 }
 
-swap_focused_panel :: proc() {
-	_focused_panel = _focused_panel == &_left_panel ? &_right_panel : &_left_panel
+set_debug_message :: proc(text: string) {
+
+	if _debug_message != {} {
+		delete(_debug_message)
+		_debug_message = {}
+	}
+
+	if text != {} {
+		_debug_message = strings.clone(text)
+	}
 }
 

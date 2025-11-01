@@ -85,6 +85,9 @@ draw_main_gui :: proc() {
 			error_message := fmt.tprintf("Error: %v", _last_error)
 			set_color_pair(_current_theme.error_message)
 			write_cropped(error_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
+		} else if _debug_message != {} {
+			set_color_pair(_current_theme.debug_message)
+			write_cropped(_debug_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
 		}
 	}
 
@@ -396,7 +399,7 @@ move_cursor :: proc(x, y: uint) {
 }
 
 should_draw_command_area :: proc() -> bool {
-	return _last_error != nil
+	return _last_error != nil || _debug_message != {}
 }
 
 get_max_visible_files :: proc() -> int {

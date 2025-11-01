@@ -219,10 +219,15 @@ move_file_focus :: proc(amount: int) {
 
 }
 
-
 get_focused_file_index :: proc() -> int {
 	return _focused_panel.focused_row_index + _focused_panel.first_file_index
 }
+
+get_focused_file_info :: proc() -> os.File_Info {
+	index := get_focused_file_index()
+	return _focused_panel.files[index]
+}
+
 
 /*
 	Adjusts first_file_index and focused_row_index of specified panel.
@@ -271,6 +276,9 @@ recalculate_indexes :: proc(panel: ^FilePanel) {
 		panel.first_file_index += amount_to_move
 		panel.focused_row_index = max_focus_index
 	}
+}
 
+swap_focused_panel :: proc() {
+	_focused_panel = _focused_panel == &_left_panel ? &_right_panel : &_left_panel
 }
 
