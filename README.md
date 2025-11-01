@@ -14,6 +14,10 @@ Orthodox TUI file manager inspired by Helix editor motions.
  - Execute file and show output somewhere 
  - show/hide hidden items
  - remember "last session" (directories, panels, hidden files etc)
+ - file "icons" left of the file/directory
+ - color coded file and directory names based on pattern
+ - paint executables
+ - file attributes
 
 # Cleanup TODO:
 
