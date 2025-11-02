@@ -32,10 +32,10 @@ SortDirection :: enum {
 reload_file_panel :: proc(panel: ^FilePanel) {
 
 	handle, error := os.open(panel.current_dir, os.O_RDONLY, 0)
+	defer os.close(handle)
 
 	if error != nil {
 		_last_error = error
-		defer os.close(handle)
 	}
 
 	fi, err := os.read_dir(handle, 1024, context.temp_allocator)
@@ -43,9 +43,7 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 		_last_error = err
 	}
 
-	defer delete(fi)
-
-	clear(&panel.files)
+	clear_files(panel)
 
 	parent_dir_info: os.File_Info = {
 		fullpath = filepath.dir(panel.current_dir, context.allocator),
@@ -77,6 +75,15 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 	}
 
 	sort_files(panel)
+}
+
+clear_files :: proc(panel: ^FilePanel) {
+	for fi in &panel.files {
+		delete(fi.name)
+		delete(fi.fullpath)
+	}
+
+	clear(&panel.files)
 }
 
 
@@ -128,7 +135,7 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 	}
 
 	delete(panel.current_dir)
-	panel.current_dir = directory
+	panel.current_dir = strings.clone(directory)
 
 	reload_file_panel(panel)
 	panel.first_file_index = 0
