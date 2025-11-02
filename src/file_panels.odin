@@ -1,12 +1,17 @@
 package sfc
 
+import "base:runtime"
 import "core:fmt"
+import "core:mem"
 import "core:os"
 import "core:path/filepath"
 import "core:sort"
 import "core:strings"
 
 FilePanel :: struct {
+	arena:             mem.Arena,
+	arena_buffer:      []byte,
+	allocator:         runtime.Allocator,
 	current_dir:       string,
 	files:             [dynamic]os.File_Info,
 	first_file_index:  int,
@@ -27,10 +32,32 @@ SortDirection :: enum {
 }
 
 /*
+	Initializes file panel's memory and fields
+*/
+initialize_file_panel :: proc(panel: ^FilePanel, initial_directory: string) {
+	panel.arena_buffer = make([]byte, mem.Megabyte * 1, context.allocator)
+	mem.arena_init(&panel.arena, panel.arena_buffer)
+	panel.allocator = mem.arena_allocator(&panel.arena)
+
+	panel.current_dir = strings.clone(initial_directory, panel.allocator)
+	panel.files = make([dynamic]os.File_Info, 100, panel.allocator)
+	reload_file_panel(panel)
+}
+
+/*
+	Frees all memory used by the panel and re-initializes containers which used the old memory
+*/
+reset_file_panel_memory :: proc(panel: ^FilePanel) {
+	current_dir_backup := strings.clone(panel.current_dir, context.temp_allocator)
+	mem.arena_free_all(&panel.arena)
+	panel.current_dir = strings.clone(current_dir_backup, panel.allocator)
+	panel.files = make([dynamic]os.File_Info, 0, 100, panel.allocator)
+}
+
+/*
 	Reloads files in current directory of specified panel
 */
 reload_file_panel :: proc(panel: ^FilePanel) {
-
 	handle, error := os.open(panel.current_dir, os.O_RDONLY, 0)
 	defer os.close(handle)
 
@@ -38,38 +65,32 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 		_last_error = error
 	}
 
-	fi, err := os.read_dir(handle, 1024, context.temp_allocator)
+	files, err := os.read_dir(handle, 1024, context.temp_allocator)
 	if err != 0 {
 		_last_error = err
 	}
 
-	clear_files(panel)
+	reset_file_panel_memory(panel)
 
 	parent_dir_info: os.File_Info = {
-		fullpath = filepath.dir(panel.current_dir, context.allocator),
-		name     = strings.clone("..", context.allocator),
+		fullpath = filepath.dir(panel.current_dir, panel.allocator),
+		name     = strings.clone("..", panel.allocator),
 		size     = 0,
 		mode     = os.File_Mode_Dir,
 		is_dir   = true,
 	}
+
 	append(&panel.files, parent_dir_info)
 
-	for f in fi {
-		//deep copy strngs because they are allocated internally by os.read_dir
-		//originally I just replaced the strings in &f, but AI convinced me that creating a new 'file_info_copy' variable here is safer
-		//TODO: ask somone on forums what is better and why
-		//Reasoning: f was created by os.read_dir and it's strings are allocated on temp allocator
-		//If I re-allocate the strings on f variable, I'm changing the memory that I don't "own" and that's dangerous (no concrete reason)
-		//So creating a new variable which holds cloned strings is "better practice".
+	for f in files {
 		file_info_copy := f
-		file_info_copy.name = strings.clone(f.name, context.allocator)
-
+		file_info_copy.name = strings.clone(f.name, panel.allocator)
 		if strings.starts_with(f.fullpath, "//") {
 			//workaround for what seems to be a bug on os package. For some reason it returns double // in root directory.
 			// TODO: investigate or report
-			file_info_copy.fullpath = strings.clone(f.fullpath[1:], context.allocator)
+			file_info_copy.fullpath = strings.clone(f.fullpath[1:], panel.allocator)
 		} else {
-			file_info_copy.fullpath = strings.clone(f.fullpath, context.allocator)
+			file_info_copy.fullpath = strings.clone(f.fullpath, panel.allocator)
 		}
 		append(&panel.files, file_info_copy)
 	}
@@ -77,21 +98,12 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 	sort_files(panel)
 }
 
-clear_files :: proc(panel: ^FilePanel) {
-	for fi in &panel.files {
-		delete(fi.name)
-		delete(fi.fullpath)
-	}
-
-	clear(&panel.files)
-}
-
 
 /*
 	Changes current directory of specified panel one level up
 */
 cd_up :: proc(panel: ^FilePanel) {
-	parent_dir := filepath.dir(panel.current_dir, context.allocator)
+	parent_dir := filepath.dir(panel.current_dir, context.temp_allocator)
 
 	if strings.equal_fold(parent_dir, panel.current_dir) {
 		return
@@ -134,8 +146,8 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 		return os.General_Error.Not_Dir
 	}
 
-	delete(panel.current_dir)
-	panel.current_dir = strings.clone(directory)
+	// delete(panel.current_dir)
+	panel.current_dir = strings.clone(directory, context.temp_allocator)
 
 	reload_file_panel(panel)
 	panel.first_file_index = 0

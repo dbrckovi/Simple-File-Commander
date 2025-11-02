@@ -35,20 +35,17 @@ main :: proc() {
 
 init :: proc() {
 	init_screen()
+	_, _ = wait_for_interesting_event()
 	init_panels()
 	reset_theme_to_default(&_current_theme)
 }
 
+
 init_panels :: proc() {
-	_left_panel.current_dir = os.get_current_directory(context.allocator)
-	_left_panel.files = make([dynamic]os.File_Info, 0, context.allocator)
-	reload_file_panel(&_left_panel)
-
-	_right_panel.current_dir = os.get_current_directory(context.allocator)
-	_right_panel.files = make([dynamic]os.File_Info, 0, context.allocator)
-	reload_file_panel(&_right_panel)
-
 	_focused_panel = &_left_panel
+	cwd := os.get_current_directory(context.temp_allocator)
+	initialize_file_panel(&_left_panel, cwd)
+	initialize_file_panel(&_right_panel, cwd)
 }
 
 /*
