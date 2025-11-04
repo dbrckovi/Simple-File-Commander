@@ -236,7 +236,9 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 	//panel summary line
 	summary_y := bottom + 1
-	msg := fmt.tprintf("%i", panel.focused_row_index)
+	focused_file := get_focused_file_info()
+	msg := fmt.tprintf("%b", focused_file.mode)
+
 	write(msg, {left + 2, summary_y})
 }
 
