@@ -209,6 +209,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			}
 
 			if info.is_dir {
+				//direcotry
 				set_fg_color(_current_theme.main.fg)
 				write("[", {left + 2, uint(current_row)})
 
@@ -223,8 +224,16 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				set_fg_color(_current_theme.main.fg)
 				write("]", {left + 3 + len(info.name), uint(current_row)})
 			} else {
-				if strings.starts_with(info.name, ".") {
+				//file
+				hidden := is_hidden(info)
+				executable := is_executable(info)
+
+				if hidden && executable {
+					set_fg_color(_current_theme.file_hidden_executable.fg)
+				} else if hidden {
 					set_fg_color(_current_theme.file_hidden.fg)
+				} else if executable {
+					set_fg_color(_current_theme.file_executable.fg)
 				} else {
 					set_fg_color(_current_theme.file_normal.fg)
 				}
@@ -237,8 +246,11 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	//panel summary line
 	summary_y := bottom + 1
 	focused_file := get_focused_file_info()
-	msg := fmt.tprintf("%b", focused_file.mode)
+	executable := is_executable(focused_file)
 
+	msg := fmt.tprint(get_permissions_string(focused_file))
+
+	set_color_pair(_current_theme.main)
 	write(msg, {left + 2, summary_y})
 }
 

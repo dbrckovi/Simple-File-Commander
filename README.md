@@ -6,19 +6,24 @@ Orthodox TUI file manager inspired by Helix editor motions.
 
 # Important TODO:
 
- - make separate allocator for each panel and free it after refresh
+ + make separate allocator for each panel and free it after refresh
  - Make key mapper (load from file, default if not found)
  - Make command sub-system (parser, executor, show results/errors)
  - Make text viewer "popup"
  - Make commands which can be called from key mapper or from command sub-system
- - File type detector for system and executables
  - Execute file and show output somewhere
  - show/hide hidden items
  - remember "last session" (directories, panels, hidden files etc)
  - file "icons" left of the file/directory
  - color coded file and directory names based on pattern
- - paint executables
- - file attributes
+ + paint executables
+ + file attributes
+  - draw file attributes with different color for each permission set
+  - draw file attributes in octal mode
+ - dynamic columns
+ + get file attributes from parent directory
+ - handle system files
+ - handle symbolic links
  - selection
  
 # Cleanup TODO:

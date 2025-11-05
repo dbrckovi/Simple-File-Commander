@@ -6,19 +6,20 @@ import "core:strconv"
 	Holds colors for every gui element in the application
 */
 Theme :: struct {
-	main:             RgbPair,
-	column_header:    RgbPair,
-	sort_indicator:   RgbPair,
-	focused_panel:    RgbPair,
-	focused_file_row: RgbPair,
-	error_message:    RgbPair,
-	debug_message:    RgbPair,
-	panel_title:      RgbPair,
-	directory_normal: RgbPair,
-	directory_hidden: RgbPair,
-	file_normal:      RgbPair,
-	file_executable:  RgbPair,
-	file_hidden:      RgbPair,
+	main:                   RgbPair,
+	column_header:          RgbPair,
+	sort_indicator:         RgbPair,
+	focused_panel:          RgbPair,
+	focused_file_row:       RgbPair,
+	error_message:          RgbPair,
+	debug_message:          RgbPair,
+	panel_title:            RgbPair,
+	directory_normal:       RgbPair,
+	directory_hidden:       RgbPair,
+	file_normal:            RgbPair,
+	file_executable:        RgbPair,
+	file_hidden:            RgbPair,
+	file_hidden_executable: RgbPair,
 	//TODO: system,  etc
 }
 
@@ -76,6 +77,9 @@ reset_theme_to_default :: proc(theme: ^Theme) {
 
 	theme.file_hidden.fg = hex_to_rgb("#9999CC")
 	theme.file_hidden.use_fg = true
+
+	theme.file_hidden_executable.fg = hex_to_rgb("#99CC99")
+	theme.file_hidden_executable.use_fg = true
 }
 
 /*

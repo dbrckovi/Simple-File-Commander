@@ -31,6 +31,17 @@ SortDirection :: enum {
 	descending,
 }
 
+//Additional File_Mode values that are missing in core:os
+File_Mode_Other_Execute :: os.File_Mode(1 << 0)
+File_Mode_Other_Write :: os.File_Mode(1 << 1)
+File_Mode_Other_Read :: os.File_Mode(1 << 2)
+File_Mode_Group_Execute :: os.File_Mode(1 << 3)
+File_Mode_Group_Write :: os.File_Mode(1 << 4)
+File_Mode_Group_Read :: os.File_Mode(1 << 5)
+File_Mode_Owner_Execute :: os.File_Mode(1 << 6)
+File_Mode_Owner_Write :: os.File_Mode(1 << 7)
+File_Mode_Owner_Read :: os.File_Mode(1 << 8)
+
 /*
 	Initializes file panel's memory and fields
 */
@@ -322,5 +333,40 @@ recalculate_indexes :: proc(panel: ^FilePanel) {
 
 swap_focused_panel :: proc() {
 	_focused_panel = _focused_panel == &_left_panel ? &_right_panel : &_left_panel
+}
+
+is_hidden :: proc(info: os.File_Info) -> bool {
+	return strings.starts_with(info.name, ".")
+}
+
+is_executable :: proc(info: os.File_Info) -> bool {
+	return(
+		File_Mode_Owner_Execute & info.mode > 0 ||
+		File_Mode_Group_Execute & info.mode > 0 ||
+		File_Mode_Other_Execute & info.mode > 0 \
+	)
+}
+
+get_permissions_string :: proc(info: os.File_Info) -> string {
+	binary_string := fmt.tprintf("%b", info.mode)
+	binary_slice := binary_string[len(binary_string) - 9:]
+	chars: [3]rune = {'r', 'w', 'x'}
+	char_index := 0
+
+	sb := strings.builder_make(context.temp_allocator)
+
+	for r, i in binary_slice {
+		if r == '1' {
+			strings.write_rune(&sb, chars[char_index])
+		} else {
+			strings.write_rune(&sb, '-')
+		}
+		char_index += 1
+		if char_index > 2 {
+			char_index = 0
+		}
+	}
+
+	return strings.to_string(sb)
 }
 
