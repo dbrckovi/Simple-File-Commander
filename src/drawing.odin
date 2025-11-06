@@ -5,6 +5,9 @@ import tb "../lib/TermCL/term"
 import "core:fmt"
 import "core:strings"
 
+SORT_ASCENDING_CHAR := "↓"
+SORT_DESCENDING_CHAR := "↑"
+
 _screen: t.Screen
 _last_foreground: t.Any_Color = .White
 _last_background: t.Any_Color = {}
@@ -58,7 +61,7 @@ draw :: proc() {
 */
 draw_main_gui :: proc() {
 
-	main_splitter_x := uint(f32(_screen.size.w) * _splitter_fraction)
+	main_splitter_x := get_main_splitter_x()
 	draw_command_area := should_draw_command_area()
 
 	set_color_pair(_current_theme.main)
@@ -103,7 +106,6 @@ draw_main_gui :: proc() {
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 }
 
-
 /*
 	Draws layout of a single panel
 	left - x coordinate of the left border
@@ -114,67 +116,67 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 	//TODO: Rethink color handling. This is too convoluted
 
+	leftmost_dynamic_colunn_x: uint = left + _settings.name_column_min_size + 1
 	panel_width := right - left
-	draw_date := panel_width >= 40
-	draw_size := panel_width >= 20
+
+	date_drawn: bool // was date colunn drawn
+	size_drawn: bool // was size colunn drawn
+	attr_drawn: bool // was attrivutes column drawn
+	name_drawn: bool // was name column drawn (can become false if screen is too small)
+
+	date_left_border_x: uint // left border of date column (if drawn)
+	size_left_border_x: uint // left border of size column (if drawn)
+	attr_left_border_x: uint // left border of attributes colun (if drawn)
+
 	current_rightmost_border := right
-	date_left_border_x: uint // left border of date column (if it exists)
-	size_left_border_x: uint // left border of si
 	name_label_left_x: uint = left + 2 //x coordinate for name column text and file names
-	sort_char := panel.sort_direction == .ascending ? "↓" : "↑"
+	sort_char := panel.sort_direction == .ascending ? SORT_ASCENDING_CHAR : SORT_DESCENDING_CHAR
 	panel_inner_bg :=
 		_focused_panel == panel ? _current_theme.focused_panel.bg : _current_theme.main.bg
 
 	//background
 	paint_rectangle({int(left + 1), 1, int(right - left - 1), int(bottom - 1)}, panel_inner_bg)
 
-	//date column and lines
-	if draw_date {
-		current_rightmost_border = current_rightmost_border - 19
-		date_left_border_x = current_rightmost_border
+	//dynamic columns
+	#reverse for col in _settings.columns {
+		//TODO: read comment below and find out
+		drawn: bool // declaring here, because I'm not sure what odin will do if I use := with mixed variables (one exists, other doesn't)
 
-		set_colors(_current_theme.main.fg, panel_inner_bg)
-		draw_vertical_line({int(date_left_border_x), 1}, int(bottom - 1), false)
+		current_rightmost_border, drawn = try_draw_dynamic_column_borders(
+			panel,
+			col,
+			current_rightmost_border,
+			panel_inner_bg,
+			bottom,
+			leftmost_dynamic_colunn_x,
+		)
 
-		set_fg_color(_current_theme.column_header.fg)
-		write("Date", {date_left_border_x + 13, 1})
-		if panel.sort_column == .date {
-			set_fg_color(_current_theme.sort_indicator.fg)
-			write(sort_char, {date_left_border_x + 17, 1})
+		if drawn {
+			#partial switch col {
+			case .date:
+				date_drawn = drawn
+				date_left_border_x = current_rightmost_border
+			case .size:
+				size_drawn = drawn
+				size_left_border_x = current_rightmost_border
+			case .attributes:
+				attr_drawn = drawn
+				attr_left_border_x = current_rightmost_border
+			}
 		}
-
-		set_color_pair(_current_theme.main)
-		write("╤", {date_left_border_x, 0})
-		write("┴", {date_left_border_x, bottom})
-	}
-
-	//size column and lines
-	if draw_size {
-		current_rightmost_border = current_rightmost_border - 10
-		size_left_border_x = current_rightmost_border
-
-		set_colors(_current_theme.main.fg, panel_inner_bg)
-		draw_vertical_line({int(size_left_border_x), 1}, int(bottom - 1), false)
-
-		set_fg_color(_current_theme.column_header.fg)
-		write("Size", {size_left_border_x + 4, 1})
-		if panel.sort_column == .size {
-			set_fg_color(_current_theme.sort_indicator.fg)
-			write(sort_char, {size_left_border_x + 8, 1})
-		}
-
-		set_color_pair(_current_theme.main)
-		write("╤", {size_left_border_x, 0})
-		write("┴", {size_left_border_x, bottom})
 	}
 
 	//name column
-	set_bg_color(panel_inner_bg)
-	set_fg_color(_current_theme.column_header.fg)
-	write("Name", {name_label_left_x, 1})
-	if panel.sort_column == .name {
-		set_fg_color(_current_theme.sort_indicator.fg)
-		write(sort_char, {left + 6, 1})
+	if current_rightmost_border - left > 6 {
+		set_colors(_current_theme.column_header.fg, panel_inner_bg)
+		write("Name", {name_label_left_x, 1})
+		if panel.sort_column == .name {
+			set_fg_color(_current_theme.sort_indicator.fg)
+			write(sort_char, {left + 6, 1})
+		}
+		name_drawn = true
+	} else {
+		name_drawn = false
 	}
 
 	//panel title (current directory label)
@@ -198,7 +200,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				set_bg_color(panel_inner_bg)
 			}
 
-			info := panel.files[file_index]
+			file := panel.files[file_index]
 
 			if is_focused {
 				paint_rectangle(
@@ -208,25 +210,31 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				)
 			}
 
-			if info.is_dir {
-				//direcotry
+			if file.is_dir {
+				//directory
 				set_fg_color(_current_theme.main.fg)
 				write("[", {left + 2, uint(current_row)})
 
-				if strings.starts_with(info.name, ".") {
+				if strings.starts_with(file.name, ".") {
 					set_fg_color(_current_theme.directory_hidden.fg)
 				} else {
 					set_fg_color(_current_theme.directory_normal.fg)
 				}
 
-				write(fmt.tprint(info.name), {left + 3, uint(current_row)})
+				write_cropped(
+					fmt.tprint(file.name),
+					{left + 3, uint(current_row)},
+					current_rightmost_border,
+					true,
+				)
 
 				set_fg_color(_current_theme.main.fg)
-				write("]", {left + 3 + len(info.name), uint(current_row)})
+				dir_right_x := min(current_rightmost_border, left + 3 + len(file.name))
+				write("]", {dir_right_x, uint(current_row)})
 			} else {
 				//file
-				hidden := is_hidden(info)
-				executable := is_executable(info)
+				hidden := is_hidden(file)
+				executable := is_executable(file)
 
 				if hidden && executable {
 					set_fg_color(_current_theme.file_hidden_executable.fg)
@@ -237,7 +245,16 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				} else {
 					set_fg_color(_current_theme.file_normal.fg)
 				}
-				write(fmt.tprint(info.name), {left + 2, uint(current_row)})
+				// write_cropped(fmt.tprint(file.name), {left + 2, uint(current_row)})
+
+				write_cropped(
+					fmt.tprint(file.name),
+					{left + 2, uint(current_row)},
+					current_rightmost_border,
+					true,
+				)
+
+
 			}
 			current_row += 1
 		}
@@ -255,8 +272,72 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 }
 
 /*
+	If there is enough space, draws column name, sort indicator and border.
+
+	@param panel - pointer to file panel on which the column is being drawn
+	@param column - column which is being drawn
+	@param right_border_x - current right border, left of which the column will be drawn
+	@param background_color - background color used for elements
+	@param bottom_y - y coordinate of the bottom line up to which files are drawn
+	@param min_left_border_x: y coordinate below which dynamic columns may not be drawn in order to reserve space for 'Name' column
+	@returns the y coordinate of it's left border, and bool value indicating if column was drawn
+
+	@remarks If there is not enough space, returns the original value of right_border_x
+*/
+try_draw_dynamic_column_borders :: proc(
+	panel: ^FilePanel,
+	column: FilePanelColumn,
+	right_border_x: uint,
+	background_color: [3]u8,
+	bottom_y: uint,
+	min_left_border_x: uint,
+) -> (
+	uint,
+	bool,
+) {
+	left_border: int = int(right_border_x)
+	title: string
+	sort_char := panel.sort_direction == .ascending ? SORT_ASCENDING_CHAR : SORT_DESCENDING_CHAR
+
+	switch column {
+	case .date:
+		title = "Date"
+		left_border = int(right_border_x) - 19
+	case .size:
+		title = "Size"
+		left_border = int(right_border_x) - 10
+	case .attributes:
+		title = "Attr"
+		left_border = int(right_border_x) - 12 //TODO: revise
+	case .name:
+		panic("Procedure is not intended for drawing 'Name' column")
+	}
+
+	if left_border < int(min_left_border_x) {
+		return right_border_x, false
+	}
+
+	set_colors(_current_theme.main.fg, background_color)
+	draw_vertical_line({int(left_border), 1}, int(bottom_y - 1), false)
+
+	set_fg_color(_current_theme.column_header.fg)
+	write(title, {right_border_x - 6, 1})
+	if panel.sort_column == column {
+		set_fg_color(_current_theme.sort_indicator.fg)
+		write(sort_char, {right_border_x - 2, 1})
+	}
+
+	set_color_pair(_current_theme.main)
+	write("╤", {uint(left_border), 0})
+	write("┴", {uint(left_border), bottom_y})
+
+	return uint(left_border), true
+}
+
+
+/*
 	Draws hoizontal line
-	- point: starting coordinate 
+	- point: starting coordinate
 	- length: line length. Negative causes the line to be drawn leftwards
  	- foreground: optional foreground color
  	- background: optional background color
@@ -282,7 +363,7 @@ draw_horizontal_line :: proc(point: [2]int, length: int, double_border := false)
 
 /*
 	Draws vertical line
-	- point: starting coordinate 
+	- point: starting coordinate
 	- length: line length. Negative causes the line to be drawn upwards
  	- foreground: optional foreground color
  	- background: optional background color
@@ -356,7 +437,7 @@ paint_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = 
  	- foreground: optional foreground color
  	- background: optional background color
  	- temp_colors: if true, after writing resets colors to previous values
- 	
+
 
  	Note: if color is not defined, a last used color will be used
 */
@@ -440,5 +521,9 @@ get_max_visible_files :: proc() -> int {
 	ret := _screen.size.h - 5
 	if should_draw_command_area() do ret -= 2
 	return int(ret)
+}
+
+get_main_splitter_x :: proc() -> uint {
+	return uint(f32(_screen.size.w) * _splitter_fraction)
 }
 

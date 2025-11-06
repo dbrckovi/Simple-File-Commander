@@ -20,11 +20,14 @@ Orthodox TUI file manager inspired by Helix editor motions.
  - [+] file attributes
    - [-] draw file attributes with different color for each permission set
    - [-] draw file attributes in octal mode
- - [-] dynamic columns
+ - [+] dynamic columns
  - [+] get file attributes from parent directory
  - [-] handle system files
  - [-] handle symbolic links
  - [-] selection
+ - [+] crop file and dir names
+ - [-] detect if file was cropped, and draw it differently (probably using "icon" column)
+ - [-] decide on settings file format and load them
  
 # Cleanup TODO:
 

@@ -15,21 +15,23 @@ FilePanel :: struct {
 	current_dir:       string,
 	files:             [dynamic]os.File_Info,
 	first_file_index:  int,
-	sort_column:       SortColumn,
+	sort_column:       FilePanelColumn,
 	sort_direction:    SortDirection,
 	focused_row_index: int, //focused row counting from line below column header (first visible file is 0)
 }
 
-SortColumn :: enum {
+FilePanelColumn :: enum {
 	name,
 	size,
 	date,
+	attributes,
 }
 
 SortDirection :: enum {
 	ascending,
 	descending,
 }
+
 
 //Additional File_Mode values that are missing in core:os
 File_Mode_Other_Execute :: os.File_Mode(1 << 0)

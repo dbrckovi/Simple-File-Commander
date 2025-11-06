@@ -15,6 +15,7 @@ _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
 _current_theme: Theme
 _focused_panel: ^FilePanel
+_settings: Settings
 
 _last_error: os.Error = nil
 _debug_message: string = {}
@@ -34,6 +35,7 @@ main :: proc() {
 }
 
 init :: proc() {
+	init_settings()
 	init_screen()
 	_, _ = wait_for_interesting_event()
 	init_panels()
