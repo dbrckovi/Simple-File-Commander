@@ -3,6 +3,54 @@ package sfc
 //TODO: move logic for parsing and executing ':' commands here
 
 /*
+	File comands:
+
+	- copy
+	- move
+	- delete
+	- create file
+	- create directory
+	- rename
+	- execute (activate)
+	- call (show output)
+
+	Sorting:
+
+	- switch sort direction
+	- sort by (col, col, col)
+
+	Filtering:
+
+	- set_filter
+	- clear_filter
+
+	Selection:
+
+	- select_focused
+	- deselect_focused
+	- select_all
+	- deselect_all
+	- toggle_selection_on_focused
+	- select_pattern
+	- deselect_pattern
+
+	Clipboard:
+
+	- clopboard copy current directory
+	- clopboard copy selected file names
+	- clopboard copy selected file full paths
+
+	Varoous:
+	
+	- compare focused files
+	- compare directories
+	- change theme
+
+
+*/
+
+
+/*
 	Performs the default action on currently focused file or directory.
 	Action depends on the type of the item
 */
