@@ -7,6 +7,8 @@ import "core:os"
 import "core:strings"
 import "core:sys/posix"
 
+_application_name := "Simple File Commander" //Application name for displaying in GUI
+_application_name_short := "sfc" //Name for directories, binaries, links, etc
 _should_run := true //Once this becomes false, program exits
 _last_keyboard_event: t.Keyboard_Input //Last input received from keyboard
 _last_mouse_event: t.Mouse_Input //Last input received from mouse
@@ -36,6 +38,8 @@ main :: proc() {
 
 init :: proc() {
 	init_settings()
+	load_settings()
+
 	init_screen()
 	_, _ = wait_for_interesting_event()
 	init_panels()

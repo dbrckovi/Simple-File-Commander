@@ -1,5 +1,6 @@
 package sfc
 
+import "core:os"
 import "core:strings"
 
 /*
@@ -36,5 +37,15 @@ compare_file_name :: proc(a, b: string) -> int {
 	} else {
 		return ret
 	}
+}
+
+contains :: proc(array: ^$T/[dynamic]$E, arg: E) -> bool {
+	for item in array {
+		if item == arg {
+			return true
+		}
+	}
+
+	return false
 }
 

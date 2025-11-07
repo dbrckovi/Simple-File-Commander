@@ -6,6 +6,7 @@ Orthodox TUI file manager inspired by Helix editor motions.
 
 # Important TODO:
 
+ - [-] check for memory leaks while loading settings
  - [+] make separate allocator for each panel and free it after refresh
  - [-] Make key mapper (load from file, default if not found)
  - [-] Make command sub-system (parser, executor, show results/errors)
@@ -27,7 +28,7 @@ Orthodox TUI file manager inspired by Helix editor motions.
  - [-] selection
  - [+] crop file and dir names
  - [-] detect if file was cropped, and draw it differently (probably using "icon" column)
- - [-] decide on settings file format and load them
+ - [+] decide on settings file format and load them
  
 # Cleanup TODO:
 

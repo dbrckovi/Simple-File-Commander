@@ -7,10 +7,10 @@
     // Request:
     //  - launch: Zed will launch the program if specified, or show a debug terminal with the right configuration
     //  - attach: Zed will attach to a running program to debug it, or when the process_id is not specified, will show a process picker (only supported for node currently)
-    "request": "attach",
+    "request": "launch",
     // The program to debug. This field supports path resolution with ~ or . symbols.
 
-    // "program": "path_to_program",
+    "program": "./out/out.bin",
     // cwd: defaults to the current working directory of your project ($ZED_WORKTREE_ROOT)
     "cwd": "$ZED_WORKTREE_ROOT"
   }
