@@ -36,7 +36,7 @@ RgbPair :: struct {
 /*
 	Resets the specified theme colors to default
 */
-reset_theme_to_default :: proc(theme: ^Theme) {
+init_theme :: proc(theme: ^Theme) {
 	theme.main.fg = hex_to_rgb("#BBBBBB")
 	theme.main.bg = hex_to_rgb("#202344")
 	theme.main.use_fg = true

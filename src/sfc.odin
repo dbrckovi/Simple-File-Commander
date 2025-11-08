@@ -39,11 +39,9 @@ main :: proc() {
 init :: proc() {
 	init_settings()
 	load_settings()
-
 	init_screen()
-	_, _ = wait_for_interesting_event()
 	init_panels()
-	reset_theme_to_default(&_current_theme)
+	init_theme(&_current_theme)
 }
 
 
