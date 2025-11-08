@@ -14,6 +14,11 @@ Settings :: struct {
 */
 init_settings :: proc() {
 	_settings.columns = make([dynamic]FilePanelColumn, 0, context.allocator)
+	reset_default_settings()
+}
+
+reset_default_settings :: proc() {
+	clear(&_settings.columns)
 	append(&_settings.columns, FilePanelColumn.size)
 	append(&_settings.columns, FilePanelColumn.date)
 	append(&_settings.columns, FilePanelColumn.attributes)
@@ -43,22 +48,21 @@ load_settings :: proc() {
 			if char != '\n' {
 				strings.write_rune(&sb, char)
 			} else {
-				parse_settings_line(&_settings, strings.to_string(sb))
+				parse_settings_line(strings.to_string(sb))
 				strings.builder_reset(&sb)
 			}
 		}
 
-		parse_settings_line(&_settings, strings.to_string(sb))
+		parse_settings_line(strings.to_string(sb))
 	}
 }
 
 /*
-	Parses a line from settings and, if parsed correctly, updates the settings
-	@param settngs: Settings instance whose field will be updated
+	Parses a line loaded from config and, if parsed correctly, updates the settings
 	@param line: line of text from config file
 	@returns bool which indicates if line was successfully parsed
 */
-parse_settings_line :: proc(settings: ^Settings, line: string) -> bool {
+parse_settings_line :: proc(line: string) -> bool {
 	if len(line) == 0 do return false
 	if strings.starts_with(line, "#") || strings.starts_with(line, ";") do return false
 
@@ -71,26 +75,26 @@ parse_settings_line :: proc(settings: ^Settings, line: string) -> bool {
 		case "name_column_min_size":
 			num, ok := strconv.parse_uint(value)
 			if ok && num >= 7 {
-				settings.name_column_min_size = num
+				_settings.name_column_min_size = num
 			}
 		case "columns":
 			parts: []string = strings.split(value, ",", context.temp_allocator)
-			clear(&settings.columns)
+			clear(&_settings.columns)
 
 			for part in parts {
 				trimmed := strings.trim(part, " ")
 				switch trimmed {
 				case "size":
-					if !contains(&settings.columns, FilePanelColumn.size) {
-						append(&settings.columns, FilePanelColumn.size)
+					if !contains(&_settings.columns, FilePanelColumn.size) {
+						append(&_settings.columns, FilePanelColumn.size)
 					}
 				case "date":
-					if !contains(&settings.columns, FilePanelColumn.date) {
-						append(&settings.columns, FilePanelColumn.date)
+					if !contains(&_settings.columns, FilePanelColumn.date) {
+						append(&_settings.columns, FilePanelColumn.date)
 					}
 				case "attributes":
-					if !contains(&settings.columns, FilePanelColumn.attributes) {
-						append(&settings.columns, FilePanelColumn.attributes)
+					if !contains(&_settings.columns, FilePanelColumn.attributes) {
+						append(&_settings.columns, FilePanelColumn.attributes)
 					}
 				}
 			}
@@ -108,10 +112,10 @@ parse_settings_line :: proc(settings: ^Settings, line: string) -> bool {
 get_local_config_directory :: proc() -> string {
 	when ODIN_OS == .Windows {
 		//TODO: revise this on windows
-		return os.get_env("LOCALAPPDATA")
+		return os.get_env("LOCALAPPDATA", context.temp_allocator)
 	} else {
 		return strings.concatenate(
-			{os.get_env("HOME"), "/.config/", _application_name_short},
+			{os.get_env("HOME", context.temp_allocator), "/.config/", _application_name_short},
 			context.temp_allocator,
 		)
 	}

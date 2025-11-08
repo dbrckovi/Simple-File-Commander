@@ -7,6 +7,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:sort"
 import "core:strings"
+import "core:time"
 
 FilePanel :: struct {
 	arena:             mem.Arena,
@@ -349,7 +350,44 @@ is_executable :: proc(info: os.File_Info) -> bool {
 	)
 }
 
-get_permissions_string :: proc(info: os.File_Info) -> string {
+/*
+	Returns file's size as string
+*/
+get_file_size_string :: proc(info: os.File_Info) -> string {
+	units: [8]rune = {'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'}
+
+	if info.size < 1024 {
+		return fmt.tprintf("%d B", info.size)
+	} else {
+		size := f32(info.size)
+
+		for unit in units {
+			size = size / 1024
+			if size < 1024 {
+				return fmt.tprintf("%.1f %v", size, unit)
+			}
+		}
+	}
+
+	return strings.clone("----")
+}
+
+/*
+	Returns file's modification or creation date as string
+*/
+get_file_date_string :: proc(info: os.File_Info) -> string {
+
+	value: time.Time = info.modification_time //TODO: take creating time if settings says so
+	//TODO: develop and apply formatting from settings
+
+	y, M, d := time.date(value)
+	h, m, s := time.clock(value)
+
+	return fmt.tprintf("%2d.%2d.%4d %2d:%2d", d, M, y, h, m)
+}
+
+
+get_file_permissions_string :: proc(info: os.File_Info) -> string {
 	binary_string := fmt.tprintf("%b", info.mode)
 	binary_slice := binary_string[len(binary_string) - 9:]
 	chars: [3]rune = {'r', 'w', 'x'}

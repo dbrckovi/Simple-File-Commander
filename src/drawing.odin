@@ -8,6 +8,10 @@ import "core:strings"
 SORT_ASCENDING_CHAR := "↓"
 SORT_DESCENDING_CHAR := "↑"
 
+COL_DATE_LENGTH :: 19
+COL_SIZE_LENGTH :: 10
+COL_ATTRIBUTES_LENGTH :: 12
+
 _screen: t.Screen
 _last_foreground: t.Any_Color = .White
 _last_background: t.Any_Color = {}
@@ -210,6 +214,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				)
 			}
 
+			//Name
 			if file.is_dir {
 				//directory
 				set_fg_color(_current_theme.main.fg)
@@ -256,6 +261,28 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 
 			}
+
+			//Size
+			if size_drawn {
+				size_text := get_file_size_string(file)
+				size_text_x := size_left_border_x + COL_SIZE_LENGTH - len(size_text) - 1
+				write(size_text, {size_text_x, uint(current_row)})
+			}
+
+			//Attr
+			if attr_drawn {
+				attr_text := get_file_permissions_string(file)
+				attr_text_x := attr_left_border_x + COL_ATTRIBUTES_LENGTH - len(attr_text) - 1
+				write(attr_text, {attr_text_x, uint(current_row)})
+			}
+
+			//Date
+			if date_drawn {
+				date_text := get_file_date_string(file)
+				date_text_x := date_left_border_x + COL_DATE_LENGTH - len(date_text) - 1
+				write(date_text, {date_text_x, uint(current_row)})
+			}
+
 			current_row += 1
 		}
 	}
@@ -265,7 +292,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	focused_file := get_focused_file_info()
 	executable := is_executable(focused_file)
 
-	msg := fmt.tprint(get_permissions_string(focused_file))
+	msg := fmt.tprint("TODO: file count, dir count, selected files, total size...")
 
 	set_color_pair(_current_theme.main)
 	write(msg, {left + 2, summary_y})
@@ -302,13 +329,13 @@ try_draw_dynamic_column_borders :: proc(
 	switch column {
 	case .date:
 		title = "Date"
-		left_border = int(right_border_x) - 19
+		left_border = int(right_border_x) - COL_DATE_LENGTH
 	case .size:
 		title = "Size"
-		left_border = int(right_border_x) - 10
+		left_border = int(right_border_x) - COL_SIZE_LENGTH
 	case .attributes:
 		title = "Attr"
-		left_border = int(right_border_x) - 12 //TODO: revise
+		left_border = int(right_border_x) - COL_ATTRIBUTES_LENGTH
 	case .name:
 		panic("Procedure is not intended for drawing 'Name' column")
 	}
