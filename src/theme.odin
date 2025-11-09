@@ -16,11 +16,15 @@ Theme :: struct {
 	panel_title:            RgbPair,
 	directory_normal:       RgbPair,
 	directory_hidden:       RgbPair,
+	directory_selected:     RgbPair,
 	file_normal:            RgbPair,
 	file_executable:        RgbPair,
 	file_hidden:            RgbPair,
 	file_hidden_executable: RgbPair,
-	//TODO: system,  etc
+	file_selected:          RgbPair,
+	attribute_owner:        RgbPair,
+	attribute_group:        RgbPair,
+	attribute_other:        RgbPair,
 }
 
 /*
@@ -60,6 +64,9 @@ init_theme :: proc(theme: ^Theme) {
 	theme.directory_hidden.fg = hex_to_rgb("#AAAA99")
 	theme.directory_hidden.use_fg = true
 
+	theme.directory_selected.fg = hex_to_rgb("#FF6622")
+	theme.directory_selected.use_fg = true
+
 	theme.sort_indicator.fg = hex_to_rgb("#FFDD55")
 	theme.sort_indicator.use_fg = true
 
@@ -80,6 +87,18 @@ init_theme :: proc(theme: ^Theme) {
 
 	theme.file_hidden_executable.fg = hex_to_rgb("#99CC99")
 	theme.file_hidden_executable.use_fg = true
+
+	theme.file_selected.fg = hex_to_rgb("#FF2266")
+	theme.file_selected.use_fg = true
+
+	theme.attribute_owner.fg = hex_to_rgb("#EECCCC")
+	theme.attribute_owner.use_fg = true
+
+	theme.attribute_group.fg = hex_to_rgb("#CCEECC")
+	theme.attribute_group.use_fg = true
+
+	theme.attribute_other.fg = hex_to_rgb("#CCCCEE")
+	theme.attribute_other.use_fg = true
 }
 
 /*

@@ -14,11 +14,19 @@ FilePanel :: struct {
 	arena_buffer:      []byte,
 	allocator:         runtime.Allocator,
 	current_dir:       string,
-	files:             [dynamic]os.File_Info,
+	files:             [dynamic]SfcFileInfo,
 	first_file_index:  int,
 	sort_column:       FilePanelColumn,
 	sort_direction:    SortDirection,
 	focused_row_index: int, //focused row counting from line below column header (first visible file is 0)
+}
+
+/*
+	Holds single file data
+*/
+SfcFileInfo :: struct {
+	selected: bool,
+	file:     os.File_Info,
 }
 
 FilePanelColumn :: enum {
@@ -54,7 +62,7 @@ initialize_file_panel :: proc(panel: ^FilePanel, initial_directory: string) {
 	panel.allocator = mem.arena_allocator(&panel.arena)
 
 	panel.current_dir = strings.clone(initial_directory, panel.allocator)
-	panel.files = make([dynamic]os.File_Info, 100, panel.allocator)
+	panel.files = make([dynamic]SfcFileInfo, 100, panel.allocator)
 	reload_file_panel(panel)
 }
 
@@ -65,13 +73,25 @@ reset_file_panel_memory :: proc(panel: ^FilePanel) {
 	current_dir_backup := strings.clone(panel.current_dir, context.temp_allocator)
 	mem.arena_free_all(&panel.arena)
 	panel.current_dir = strings.clone(current_dir_backup, panel.allocator)
-	panel.files = make([dynamic]os.File_Info, 0, 100, panel.allocator)
+	panel.files = make([dynamic]SfcFileInfo, 0, 100, panel.allocator)
 }
 
 /*
 	Reloads files in current directory of specified panel
 */
-reload_file_panel :: proc(panel: ^FilePanel) {
+reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
+	previous_selection: [dynamic]string //TODO: Maybe use normal array instead of
+
+	if preserve_selection {
+		previous_selection = make([dynamic]string, 0, 0, context.temp_allocator)
+
+		for file in panel.files {
+			if file.selected {
+				append(&previous_selection, strings.clone(file.file.name, context.temp_allocator))
+			}
+		}
+	}
+
 	handle, error := os.open(panel.current_dir, os.O_RDONLY, 0)
 	defer os.close(handle)
 
@@ -86,32 +106,40 @@ reload_file_panel :: proc(panel: ^FilePanel) {
 
 	reset_file_panel_memory(panel)
 
-	parent_dir_info: os.File_Info = {
-		fullpath = filepath.dir(panel.current_dir, panel.allocator),
-		name     = strings.clone("..", panel.allocator),
-		size     = 0,
-		mode     = os.File_Mode_Dir,
-		is_dir   = true,
+	parent_dir_info: SfcFileInfo = {
+		selected = false,
+		file = {
+			//TODO: get this data from sys call
+			fullpath = filepath.dir(panel.current_dir, panel.allocator),
+			name     = strings.clone("..", panel.allocator),
+			size     = 0,
+			mode     = os.File_Mode_Dir,
+			is_dir   = true,
+		},
 	}
 
 	append(&panel.files, parent_dir_info)
 
 	for f in files {
-		file_info_copy := f
+		file_info_copy: os.File_Info = f
 		file_info_copy.name = strings.clone(f.name, panel.allocator)
 		if strings.starts_with(f.fullpath, "//") {
-			//workaround for what seems to be a bug on os package. For some reason it returns double // in root directory.
+			//workaround for what seems to be a bug in os package. For some reason it returns double // in root directory.
 			// TODO: investigate or report
 			file_info_copy.fullpath = strings.clone(f.fullpath[1:], panel.allocator)
 		} else {
 			file_info_copy.fullpath = strings.clone(f.fullpath, panel.allocator)
 		}
-		append(&panel.files, file_info_copy)
-	}
 
+		newItem: SfcFileInfo = {
+			selected = preserve_selection && contains(&previous_selection, file_info_copy.name),
+			file     = file_info_copy,
+		}
+
+		append(&panel.files, newItem)
+	}
 	sort_files(panel)
 }
-
 
 /*
 	Changes current directory of specified panel one level up
@@ -130,7 +158,7 @@ cd_up :: proc(panel: ^FilePanel) {
 
 	//focus directory from which we came
 	loop: for file, index in panel.files {
-		if strings.compare(file.fullpath, came_from_dir) == 0 {
+		if strings.compare(file.file.fullpath, came_from_dir) == 0 {
 			if index <= max_visible_index {
 				panel.focused_row_index = index
 			} else {
@@ -160,10 +188,11 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 		return os.General_Error.Not_Dir
 	}
 
-	// delete(panel.current_dir)
+	same_directory := strings.compare(directory, panel.current_dir)
+
 	panel.current_dir = strings.clone(directory, context.temp_allocator)
 
-	reload_file_panel(panel)
+	reload_file_panel(panel, same_directory == 0)
 	panel.first_file_index = 0
 	panel.focused_row_index = 0
 
@@ -180,49 +209,109 @@ sort_files :: proc(panel: ^FilePanel) {
 }
 
 /*
-			if 'A' <= c && c <= 'Z' {
-				c += 'a' - 'A'
-			}
+	Switches the sort mode to the specified column.
+	@param panel: panel whose sorting will be affected
+	@param column: column to which the sorting will be set
+	@param direction: sort direction to set. If null, sort direction will be automatically set
 */
+set_sort_column_auto :: proc(
+	panel: ^FilePanel,
+	column: FilePanelColumn,
+	direction: Maybe(SortDirection) = nil,
+) {
+	dir, direction_specified := direction.?
+	if direction_specified {
+		panel.sort_direction = dir
+	} else {
+		if column == panel.sort_column {
+			toggle_sort_direction(panel)
+		} else {
+			panel.sort_column = column
+		}
+	}
 
-enforce_directories_first :: proc(a, b: os.File_Info) -> (int, bool) {
-	if a.name == ".." {
+	panel.sort_column = column
+}
+
+toggle_sort_direction :: proc(panel: ^FilePanel) {
+	if panel.sort_direction == .ascending {
+		panel.sort_direction = .descending
+	} else {
+		panel.sort_direction = .ascending
+	}
+}
+
+enforce_directories_first :: proc(a, b: SfcFileInfo) -> (int, bool) {
+	if a.file.name == ".." {
 		return -1, true
 	}
 
-	if b.name == ".." {
+	if b.file.name == ".." {
 		return 1, true
 	}
 
-	if a.is_dir && !b.is_dir {
+	if a.file.is_dir && !b.file.is_dir {
 		return -1, true
 	}
 
-	if b.is_dir && !a.is_dir {
+	if b.file.is_dir && !a.file.is_dir {
 		return 1, true
 	}
 
 	return 0, false
 }
 
-compare_file_info_by_name_asc :: proc(a, b: os.File_Info) -> int {
+/*
+	Selects or deselects focused file in a focused panel
+	@param advance_focus: if true, next file will be focused after selection
+*/
+toggle_selection_focused_file :: proc(advance_focus: bool = false) {
+	file := get_focused_file_info()
+	set_file_selected(file, !file.selected)
+	if advance_focus {
+		move_file_focus(1)
+	}
+}
+
+select_all :: proc() {
+	for &file in _focused_panel.files {
+		set_file_selected(&file, true)
+	}
+}
+
+deselect_all :: proc() {
+	for &file in _focused_panel.files {
+		set_file_selected(&file, false)
+	}
+}
+
+/*
+	Sets 'selected' field on the specified file if possible
+	(example: [..] directory many not be selected)
+*/
+set_file_selected :: proc(file: ^SfcFileInfo, selected: bool) {
+	if file.file.name != ".." {
+		file.selected = selected
+	}
+}
+
+compare_file_info_by_name_asc :: proc(a, b: SfcFileInfo) -> int {
 	ret, enforce := enforce_directories_first(a, b)
 	if enforce {
 		return ret
 	}
 
-	return compare_file_name(a.name, b.name)
+	return compare_file_name(a.file.name, b.file.name)
 }
 
-compare_file_info_by_name_desc :: proc(a, b: os.File_Info) -> int {
+compare_file_info_by_name_desc :: proc(a, b: SfcFileInfo) -> int {
 	ret, enforce := enforce_directories_first(a, b)
 	if enforce {
 		return ret
 	}
 
-	return -compare_file_name(a.name, b.name)
+	return -compare_file_name(a.file.name, b.file.name)
 }
-
 
 compare_file_info_by_date :: proc(a, b: os.File_Info) -> int {
 	panic("Unimplemented")
@@ -279,9 +368,9 @@ get_focused_file_index :: proc() -> int {
 	return _focused_panel.focused_row_index + _focused_panel.first_file_index
 }
 
-get_focused_file_info :: proc() -> os.File_Info {
+get_focused_file_info :: proc() -> ^SfcFileInfo {
 	index := get_focused_file_index()
-	return _focused_panel.files[index]
+	return &_focused_panel.files[index]
 }
 
 
@@ -338,15 +427,15 @@ swap_focused_panel :: proc() {
 	_focused_panel = _focused_panel == &_left_panel ? &_right_panel : &_left_panel
 }
 
-is_hidden :: proc(info: os.File_Info) -> bool {
-	return strings.starts_with(info.name, ".")
+is_hidden :: proc(info: ^SfcFileInfo) -> bool {
+	return strings.starts_with(info.file.name, ".")
 }
 
-is_executable :: proc(info: os.File_Info) -> bool {
+is_executable :: proc(info: ^SfcFileInfo) -> bool {
 	return(
-		File_Mode_Owner_Execute & info.mode > 0 ||
-		File_Mode_Group_Execute & info.mode > 0 ||
-		File_Mode_Other_Execute & info.mode > 0 \
+		File_Mode_Owner_Execute & info.file.mode > 0 ||
+		File_Mode_Group_Execute & info.file.mode > 0 ||
+		File_Mode_Other_Execute & info.file.mode > 0 \
 	)
 }
 

@@ -204,7 +204,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				set_bg_color(panel_inner_bg)
 			}
 
-			file := panel.files[file_index]
+			file := &panel.files[file_index]
 
 			if is_focused {
 				paint_rectangle(
@@ -215,70 +215,74 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			}
 
 			//Name
-			if file.is_dir {
+			if file.file.is_dir {
 				//directory
 				set_fg_color(_current_theme.main.fg)
 				write("[", {left + 2, uint(current_row)})
+				dir_right_x := min(current_rightmost_border, left + 3 + len(file.file.name))
+				write("]", {dir_right_x, uint(current_row)})
 
-				if strings.starts_with(file.name, ".") {
-					set_fg_color(_current_theme.directory_hidden.fg)
+				if file.selected {
+					set_fg_color(_current_theme.directory_selected.fg)
 				} else {
-					set_fg_color(_current_theme.directory_normal.fg)
+					if strings.starts_with(file.file.name, ".") {
+						set_fg_color(_current_theme.directory_hidden.fg)
+					} else {
+						set_fg_color(_current_theme.directory_normal.fg)
+					}
 				}
 
 				write_cropped(
-					fmt.tprint(file.name),
+					fmt.tprint(file.file.name),
 					{left + 3, uint(current_row)},
 					current_rightmost_border,
 					true,
 				)
-
-				set_fg_color(_current_theme.main.fg)
-				dir_right_x := min(current_rightmost_border, left + 3 + len(file.name))
-				write("]", {dir_right_x, uint(current_row)})
 			} else {
 				//file
 				hidden := is_hidden(file)
 				executable := is_executable(file)
 
-				if hidden && executable {
-					set_fg_color(_current_theme.file_hidden_executable.fg)
-				} else if hidden {
-					set_fg_color(_current_theme.file_hidden.fg)
-				} else if executable {
-					set_fg_color(_current_theme.file_executable.fg)
+				if file.selected {
+					set_fg_color(_current_theme.file_selected.fg)
 				} else {
-					set_fg_color(_current_theme.file_normal.fg)
+					if hidden && executable {
+						set_fg_color(_current_theme.file_hidden_executable.fg)
+					} else if hidden {
+						set_fg_color(_current_theme.file_hidden.fg)
+					} else if executable {
+						set_fg_color(_current_theme.file_executable.fg)
+					} else {
+						set_fg_color(_current_theme.file_normal.fg)
+					}
 				}
 				// write_cropped(fmt.tprint(file.name), {left + 2, uint(current_row)})
 
 				write_cropped(
-					fmt.tprint(file.name),
+					fmt.tprint(file.file.name),
 					{left + 2, uint(current_row)},
 					current_rightmost_border,
 					true,
 				)
-
-
 			}
 
 			//Size
 			if size_drawn {
-				size_text := get_file_size_string(file)
+				size_text := get_file_size_string(file.file)
 				size_text_x := size_left_border_x + COL_SIZE_LENGTH - len(size_text) - 1
 				write(size_text, {size_text_x, uint(current_row)})
 			}
 
 			//Attr
 			if attr_drawn {
-				attr_text := get_file_permissions_string(file)
+				attr_text := get_file_permissions_string(file.file)
 				attr_text_x := attr_left_border_x + COL_ATTRIBUTES_LENGTH - len(attr_text) - 1
-				write(attr_text, {attr_text_x, uint(current_row)})
+				draw_attributes(attr_text, {attr_text_x, uint(current_row)}, !file.selected)
 			}
 
 			//Date
 			if date_drawn {
-				date_text := get_file_date_string(file)
+				date_text := get_file_date_string(file.file)
 				date_text_x := date_left_border_x + COL_DATE_LENGTH - len(date_text) - 1
 				write(date_text, {date_text_x, uint(current_row)})
 			}
@@ -289,14 +293,39 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 	//panel summary line
 	summary_y := bottom + 1
-	focused_file := get_focused_file_info()
-	executable := is_executable(focused_file)
+	selected_file_count: uint
+	file_count := len(panel.files) - 1
+	for file in panel.files {
+		if file.selected {
+			selected_file_count += 1
+		}
+	}
 
-	msg := fmt.tprint("TODO: file count, dir count, selected files, total size...")
+	msg := fmt.tprintf("Files: %d, Selected: %d", file_count, selected_file_count)
 
 	set_color_pair(_current_theme.main)
-	write(msg, {left + 2, summary_y})
+	write_cropped(msg, {left + 2, summary_y}, right)
 }
+
+draw_attributes :: proc(attr_text: string, location: [2]uint, paint_sets: bool) {
+	old_fg := _last_foreground
+
+	if len(attr_text) != 9 || !paint_sets {
+		write(attr_text, location)
+	} else {
+		set_color_pair(_current_theme.attribute_owner)
+		write(attr_text[:3], location)
+
+		set_color_pair(_current_theme.attribute_group)
+		write(attr_text[3:6], {location.x + 3, location.y})
+
+		set_color_pair(_current_theme.attribute_other)
+		write(attr_text[6:], {location.x + 6, location.y})
+	}
+
+	set_colors(old_fg, nil)
+}
+
 
 /*
 	If there is enough space, draws column name, sort indicator and border.
@@ -360,7 +389,6 @@ try_draw_dynamic_column_borders :: proc(
 
 	return uint(left_border), true
 }
-
 
 /*
 	Draws hoizontal line

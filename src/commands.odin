@@ -56,11 +56,11 @@ package sfc
 */
 activate_focused_file_info :: proc() {
 	file_info := get_focused_file_info()
-	if file_info.is_dir {
-		if file_info.name == ".." {
+	if file_info.file.is_dir {
+		if file_info.file.name == ".." {
 			cd_up(_focused_panel)
 		} else {
-			cd(_focused_panel, file_info.fullpath)
+			cd(_focused_panel, file_info.file.fullpath)
 		}
 	}
 }
