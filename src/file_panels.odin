@@ -209,7 +209,7 @@ sort_files :: proc(panel: ^FilePanel) {
 }
 
 /*
-	Switches the sort mode to the specified column.
+	Switches the sort mode to the specified column for the focused panel.
 	@param panel: panel whose sorting will be affected
 	@param column: column to which the sorting will be set
 	@param direction: sort direction to set. If null, sort direction will be automatically set
@@ -218,6 +218,7 @@ set_sort_column_auto :: proc(
 	panel: ^FilePanel,
 	column: FilePanelColumn,
 	direction: Maybe(SortDirection) = nil,
+	reload: bool = true,
 ) {
 	dir, direction_specified := direction.?
 	if direction_specified {
@@ -231,6 +232,12 @@ set_sort_column_auto :: proc(
 	}
 
 	panel.sort_column = column
+
+	if reload {
+		reload_file_panel(_focused_panel)
+		_focused_panel.first_file_index = 0
+		_focused_panel.focused_row_index = 0
+	}
 }
 
 toggle_sort_direction :: proc(panel: ^FilePanel) {

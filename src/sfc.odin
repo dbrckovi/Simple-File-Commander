@@ -81,45 +81,15 @@ update :: proc() {
 			if i.key == .Arrow_Down do move_file_focus(1)
 			if i.key == .Arrow_Up do move_file_focus(-1)
 			if i.key == .Enter do activate_focused_file_info()
-			if i.key == .Num_1 {
-				set_sort_column_auto(_focused_panel, .name)
-				reload_file_panel(_focused_panel)
-				_focused_panel.first_file_index = 0
-				_focused_panel.focused_row_index = 0
-			}
-			if i.key == .Num_2 {
-				set_sort_column_auto(_focused_panel, .size)
-				reload_file_panel(_focused_panel)
-				_focused_panel.first_file_index = 0
-				_focused_panel.focused_row_index = 0
-			}
-			if i.key == .Num_3 {
-				set_sort_column_auto(_focused_panel, .date)
-				reload_file_panel(_focused_panel)
-				_focused_panel.first_file_index = 0
-				_focused_panel.focused_row_index = 0
-			}
-			if i.key == .Num_4 {
-				set_sort_column_auto(_focused_panel, .attributes)
-				reload_file_panel(_focused_panel)
-				_focused_panel.first_file_index = 0
-				_focused_panel.focused_row_index = 0
-			}
-			if i.key == .Space {
-				toggle_selection_focused_file(false)
-			}
-			if i.key == .X {
-				toggle_selection_focused_file(true)
-			}
-			if i.key == .Insert {
-				toggle_selection_focused_file(true)
-			}
-			if i.key == .S && i.mod == .Alt {
-				deselect_all()
-			}
-			if i.key == .Percent {
-				select_all()
-			}
+			if i.key == .Num_1 do set_sort_column_auto(_focused_panel, .name)
+			if i.key == .Num_2 do set_sort_column_auto(_focused_panel, .size)
+			if i.key == .Num_3 do set_sort_column_auto(_focused_panel, .date)
+			if i.key == .Num_4 do set_sort_column_auto(_focused_panel, .attributes)
+			if i.key == .Space do toggle_selection_focused_file(false)
+			if i.key == .X do toggle_selection_focused_file(true)
+			if i.key == .Insert do toggle_selection_focused_file(true)
+			if i.key == .Semicolon do deselect_all()
+			if i.key == .Percent do select_all()
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}
