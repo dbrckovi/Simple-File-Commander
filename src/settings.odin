@@ -5,8 +5,11 @@ import "core:strconv"
 import "core:strings"
 
 Settings :: struct {
-	columns:              [dynamic]FilePanelColumn, //specifies which columns are visible and their order from left -> right (actual columns drawn depend on available space)
-	name_column_min_size: uint, //dynamic columns will not be drawn if they would reduce space of name column below this value
+	columns:                [dynamic]FilePanelColumn, //specifies which columns are visible and their order from left -> right (actual columns drawn depend on available space)
+	name_column_min_size:   uint, //dynamic columns will not be drawn if they would reduce space of name column below this value
+	icon_link_to_file:      rune,
+	icon_executable:        rune,
+	icon_link_to_directory: rune,
 }
 
 /*
@@ -23,8 +26,10 @@ reset_default_settings :: proc() {
 	append(&_settings.columns, FilePanelColumn.date)
 	append(&_settings.columns, FilePanelColumn.attributes)
 	_settings.name_column_min_size = 10
+	_settings.icon_link_to_file = '~'
+	_settings.icon_executable = '*'
+	_settings.icon_link_to_directory = '@'
 }
-
 
 /*
 	If settings file exists, loads it into _settings instance
@@ -76,6 +81,24 @@ parse_settings_line :: proc(line: string) -> bool {
 			num, ok := strconv.parse_uint(value)
 			if ok && num >= 7 {
 				_settings.name_column_min_size = num
+			}
+		case "icon_link_to_file":
+			if len(value) == 1 {
+				_settings.icon_link_to_file = rune(value[0])
+			} else {
+				_settings.icon_link_to_file = ' '
+			}
+		case "icon_executable":
+			if len(value) == 1 {
+				_settings.icon_executable = rune(value[0])
+			} else {
+				_settings.icon_executable = ' '
+			}
+		case "icon_link_to_directory":
+			if len(value) == 1 {
+				_settings.icon_link_to_directory = rune(value[0])
+			} else {
+				_settings.icon_link_to_directory = ' '
 			}
 		case "columns":
 			parts: []string = strings.split(value, ",", context.temp_allocator)

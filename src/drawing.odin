@@ -3,6 +3,7 @@ package sfc
 import t "../lib/TermCL"
 import tb "../lib/TermCL/term"
 import "core:fmt"
+import "core:os"
 import "core:strings"
 
 SORT_ASCENDING_CHAR := "↓"
@@ -242,21 +243,26 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 				//file
 				hidden := is_hidden(file)
 				executable := is_executable(file)
+				link := is_link(file)
+
+				set_fg_color(_current_theme.main.fg)
+				if link {
+					write(fmt.tprint(_settings.icon_link_to_file), {left + 1, uint(current_row)})
+				}
 
 				if file.selected {
 					set_fg_color(_current_theme.file_selected.fg)
 				} else {
-					if hidden && executable {
+					if hidden && executable && !link {
 						set_fg_color(_current_theme.file_hidden_executable.fg)
 					} else if hidden {
 						set_fg_color(_current_theme.file_hidden.fg)
-					} else if executable {
+					} else if executable && !link {
 						set_fg_color(_current_theme.file_executable.fg)
 					} else {
 						set_fg_color(_current_theme.file_normal.fg)
 					}
 				}
-				// write_cropped(fmt.tprint(file.name), {left + 2, uint(current_row)})
 
 				write_cropped(
 					fmt.tprint(file.file.name),
@@ -264,6 +270,10 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 					current_rightmost_border,
 					true,
 				)
+
+				if executable && !link {
+					write(fmt.tprint(_settings.icon_executable), {left + 1, uint(current_row)})
+				}
 			}
 
 			//Size
@@ -301,10 +311,14 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 		}
 	}
 
-	msg := fmt.tprintf("Files: %d, Selected: %d", file_count, selected_file_count)
+	// msg := fmt.tprintf("%2b", get_focused_file_info().file.mode)
+	// indexes := "098765432109876543210"
+	// write_cropped(indexes, {left + 25 - len(indexes), summary_y - 1}, right, true)
+	// write_cropped(msg, {left + 25 - len(msg), summary_y}, right, true)
 
+	msg := fmt.tprintf("Files: %d, Selected: %d", file_count, selected_file_count)
 	set_color_pair(_current_theme.main)
-	write_cropped(msg, {left + 2, summary_y}, right)
+	write_cropped(msg, {left + 2, summary_y}, right, true)
 }
 
 draw_attributes :: proc(attr_text: string, location: [2]uint, paint_sets: bool) {

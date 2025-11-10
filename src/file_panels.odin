@@ -52,6 +52,7 @@ File_Mode_Group_Read :: os.File_Mode(1 << 5)
 File_Mode_Owner_Execute :: os.File_Mode(1 << 6)
 File_Mode_Owner_Write :: os.File_Mode(1 << 7)
 File_Mode_Owner_Read :: os.File_Mode(1 << 8)
+File_Mode_Sym_Link :: os.File_Mode(1 << 13)
 
 /*
 	Initializes file panel's memory and fields
@@ -444,6 +445,10 @@ is_executable :: proc(info: ^SfcFileInfo) -> bool {
 		File_Mode_Group_Execute & info.file.mode > 0 ||
 		File_Mode_Other_Execute & info.file.mode > 0 \
 	)
+}
+
+is_link :: proc(info: ^SfcFileInfo) -> bool {
+	return File_Mode_Sym_Link & info.file.mode > 0
 }
 
 /*

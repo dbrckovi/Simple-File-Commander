@@ -6,6 +6,8 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
 
 # Important TODO:
 
+ - [-] Decide if Control will be bindable because gnome terminal intercepts C-j, C-l, C-o, etc.
+       or try to update TermCL
  - [-] Sorting seems to work only for names
  - [-] Make key mapper (load from file, default if not found)
  - [-] decide if mod keys will be strict or flexible
@@ -29,9 +31,13 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
    - [-] draw file attributes in octal mode
  - [+] get file attributes from parent directory
  - [-] handle system files
- - [-] handle symbolic links
  - [-] detect if file was cropped, and draw it differently (probably using "icon" column)
- - [-} hex_to_rgb is ignoring errors
+ - [-] hex_to_rgb is ignoring errors
+ - [-] symbolic links
+        - differentiate links to directories and files
+        - follow them on enter
+        - show target in status area if focused file is link
+        - paint links based on target 'stat' (icon_link_to_directory is now unused)
    
 # Cleanup TODO:
 
