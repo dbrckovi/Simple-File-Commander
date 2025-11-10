@@ -1,5 +1,5 @@
 # Simple-File-Commander
-Orthodox TUI file manager inspired by Helix editor motions. 
+Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and Helix editor motions. 
 
 !!!Barely started development!!!
 
