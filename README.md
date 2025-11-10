@@ -31,7 +31,8 @@ Orthodox TUI file manager inspired by Helix editor motions.
  - [-] handle system files
  - [-] handle symbolic links
  - [-] detect if file was cropped, and draw it differently (probably using "icon" column)
- 
+ - [-} hex_to_rgb is ignoring errors
+   
 # Cleanup TODO:
 
  - Make drawing procedures consistent
