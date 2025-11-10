@@ -335,8 +335,8 @@ draw_attributes :: proc(attr_text: string, location: [2]uint, paint_sets: bool) 
 	@param right_border_x - current right border, left of which the column will be drawn
 	@param background_color - background color used for elements
 	@param bottom_y - y coordinate of the bottom line up to which files are drawn
-	@param min_left_border_x: y coordinate below which dynamic columns may not be drawn in order to reserve space for 'Name' column
-	@returns the y coordinate of it's left border, and bool value indicating if column was drawn
+	@param min_left_border_x: min 'x' coordinate. Everything left of that is reserved for the 'Name' column
+	@returns the x coordinate of it's left border, and bool value indicating if column was drawn
 
 	@remarks If there is not enough space, returns the original value of right_border_x
 */
