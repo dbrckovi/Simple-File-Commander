@@ -75,11 +75,15 @@ update :: proc() {
 			_last_keyboard_event = i
 			if i.key == .Escape do _should_run = false
 			if i.key == .Tab do swap_focused_panel()
+			if i.key == .J do cd_up(_focused_panel)
+			if i.key == .L do navigate_focused_directory()
 			if i.key == .Backspace do cd_up(_focused_panel)
 			if i.key == .K do move_file_focus(1)
 			if i.key == .I do move_file_focus(-1)
 			if i.key == .Arrow_Down do move_file_focus(1)
 			if i.key == .Arrow_Up do move_file_focus(-1)
+			if i.key == .Arrow_Left do cd_up(_focused_panel)
+			if i.key == .Arrow_Right do navigate_focused_directory()
 			if i.key == .Enter do activate_focused_file_info()
 			if i.key == .Num_1 do set_sort_column_auto(_focused_panel, .name)
 			if i.key == .Num_2 do set_sort_column_auto(_focused_panel, .size)
