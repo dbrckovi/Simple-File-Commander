@@ -121,7 +121,12 @@ reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
 
 	append(&panel.files, parent_dir_info)
 
-	for f in files {
+	FILE_LOOP: for f in files {
+
+		if !_settings.show_hidden_files && strings.starts_with(f.name, ".") {
+			continue FILE_LOOP
+		}
+
 		file_info_copy: os.File_Info = f
 		file_info_copy.name = strings.clone(f.name, panel.allocator)
 		if strings.starts_with(f.fullpath, "//") {
@@ -489,25 +494,44 @@ get_file_date_string :: proc(info: os.File_Info) -> string {
 
 
 get_file_permissions_string :: proc(info: os.File_Info) -> string {
-	binary_string := fmt.tprintf("%b", info.mode)
-	binary_slice := binary_string[len(binary_string) - 9:]
-	chars: [3]rune = {'r', 'w', 'x'}
-	char_index := 0
-
 	sb := strings.builder_make(context.temp_allocator)
 
-	for r, i in binary_slice {
-		if r == '1' {
-			strings.write_rune(&sb, chars[char_index])
-		} else {
-			strings.write_rune(&sb, '-')
-		}
-		char_index += 1
-		if char_index > 2 {
-			char_index = 0
+	switch _settings.attribute_format {
+	case .octal:
+		perms := u32(info.mode) & 0o777
+		strings.write_string(&sb, fmt.tprintf("%03o", perms))
+	case .symbolic:
+		binary_string := fmt.tprintf("%b", info.mode)
+		binary_slice := binary_string[len(binary_string) - 9:]
+		chars: [3]rune = {'r', 'w', 'x'}
+		char_index := 0
+
+		for r, i in binary_slice {
+			if r == '1' {
+				strings.write_rune(&sb, chars[char_index])
+			} else {
+				strings.write_rune(&sb, '-')
+			}
+			char_index += 1
+			if char_index > 2 {
+				char_index = 0
+			}
 		}
 	}
-
 	return strings.to_string(sb)
+}
+
+
+toggle_show_hidden_files :: proc() {
+	//TODO: preserve focused file if possible
+	//Double commander either keeps the same file selected, or the same focus
+	//If either is not possible, probably selects the last file in the list
+	_settings.show_hidden_files = !_settings.show_hidden_files
+	reload_file_panel(&_left_panel)
+	reload_file_panel(&_right_panel)
+	_left_panel.first_file_index = 0
+	_left_panel.focused_row_index = 0
+	_right_panel.first_file_index = 0
+	_right_panel.focused_row_index = 0
 }
 

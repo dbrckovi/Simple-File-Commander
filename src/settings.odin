@@ -10,6 +10,13 @@ Settings :: struct {
 	icon_link_to_file:      rune,
 	icon_executable:        rune,
 	icon_link_to_directory: rune,
+	show_hidden_files:      bool,
+	attribute_format:       Attribute_Format,
+}
+
+Attribute_Format :: enum {
+	octal,
+	symbolic,
 }
 
 /*
@@ -29,6 +36,8 @@ reset_default_settings :: proc() {
 	_settings.icon_link_to_file = '~'
 	_settings.icon_executable = '*'
 	_settings.icon_link_to_directory = '@'
+	_settings.show_hidden_files = false
+	_settings.attribute_format = .symbolic
 }
 
 /*
@@ -78,9 +87,9 @@ parse_settings_line :: proc(line: string) -> bool {
 
 		switch key {
 		case "name_column_min_size":
-			num, ok := strconv.parse_uint(value)
-			if ok && num >= 7 {
-				_settings.name_column_min_size = num
+			parsed, ok := strconv.parse_uint(value)
+			if ok && parsed >= 7 {
+				_settings.name_column_min_size = parsed
 			}
 		case "icon_link_to_file":
 			if len(value) == 1 {
@@ -99,6 +108,18 @@ parse_settings_line :: proc(line: string) -> bool {
 				_settings.icon_link_to_directory = rune(value[0])
 			} else {
 				_settings.icon_link_to_directory = ' '
+			}
+		case "show_hidden_files":
+			parsed, ok := strconv.parse_bool(value)
+			if ok {
+				_settings.show_hidden_files = parsed
+			}
+		case "attribute_format":
+			switch value {
+			case "octal":
+				_settings.attribute_format = .octal
+			case:
+				_settings.attribute_format = .symbolic
 			}
 		case "columns":
 			parts: []string = strings.split(value, ",", context.temp_allocator)

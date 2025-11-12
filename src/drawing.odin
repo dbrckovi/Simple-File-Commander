@@ -11,7 +11,6 @@ SORT_DESCENDING_CHAR := "↑"
 
 COL_DATE_LENGTH :: 19
 COL_SIZE_LENGTH :: 10
-COL_ATTRIBUTES_LENGTH :: 12
 
 _screen: t.Screen
 _last_foreground: t.Any_Color = .White
@@ -286,7 +285,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 			//Attr
 			if attr_drawn {
 				attr_text := get_file_permissions_string(file.file)
-				attr_text_x := attr_left_border_x + COL_ATTRIBUTES_LENGTH - len(attr_text) - 1
+				attr_text_x := attr_left_border_x + 2
 				draw_attributes(attr_text, {attr_text_x, uint(current_row)}, !file.selected)
 			}
 
@@ -316,7 +315,12 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	// write_cropped(indexes, {left + 25 - len(indexes), summary_y - 1}, right, true)
 	// write_cropped(msg, {left + 25 - len(msg), summary_y}, right, true)
 
-	msg := fmt.tprintf("Files: %d, Selected: %d", file_count, selected_file_count)
+	msg := fmt.tprintf(
+		"Files: %d, Selected: %d, ATTR: %v",
+		file_count,
+		selected_file_count,
+		_settings.attribute_format,
+	)
 	set_color_pair(_current_theme.main)
 	write_cropped(msg, {left + 2, summary_y}, right, true)
 }
@@ -324,9 +328,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 draw_attributes :: proc(attr_text: string, location: [2]uint, paint_sets: bool) {
 	old_fg := _last_foreground
 
-	if len(attr_text) != 9 || !paint_sets {
-		write(attr_text, location)
-	} else {
+	if paint_sets && len(attr_text) == 9 {
 		set_color_pair(_current_theme.attribute_owner)
 		write(attr_text[:3], location)
 
@@ -335,11 +337,25 @@ draw_attributes :: proc(attr_text: string, location: [2]uint, paint_sets: bool) 
 
 		set_color_pair(_current_theme.attribute_other)
 		write(attr_text[6:], {location.x + 6, location.y})
+	} else if paint_sets && len(attr_text) == 3 {
+		set_color_pair(_current_theme.attribute_owner)
+		write(attr_text[:1], location)
+
+		set_color_pair(_current_theme.attribute_group)
+		write(attr_text[1:2], {location.x + 1, location.y})
+
+		set_color_pair(_current_theme.attribute_other)
+		write(attr_text[2:3], {location.x + 2, location.y})
+	} else {
+		write(attr_text, location)
 	}
 
 	set_colors(old_fg, nil)
 }
 
+get_attribute_column_width :: proc() -> uint {
+	return _settings.attribute_format == .symbolic ? 12 : 7
+}
 
 /*
 	If there is enough space, draws column name, sort indicator and border.
@@ -377,8 +393,8 @@ try_draw_dynamic_column_borders :: proc(
 		title = "Size"
 		left_border = int(right_border_x) - COL_SIZE_LENGTH
 	case .attributes:
-		title = "Attr"
-		left_border = int(right_border_x) - COL_ATTRIBUTES_LENGTH
+		title = "Att"
+		left_border = int(right_border_x) - int(get_attribute_column_width())
 	case .name:
 		panic("Procedure is not intended for drawing 'Name' column")
 	}
@@ -391,7 +407,7 @@ try_draw_dynamic_column_borders :: proc(
 	draw_vertical_line({int(left_border), 1}, int(bottom_y - 1), false)
 
 	set_fg_color(_current_theme.column_header.fg)
-	write(title, {right_border_x - 6, 1})
+	write(title, {right_border_x - len(title) - 2, 1})
 	if panel.sort_column == column {
 		set_fg_color(_current_theme.sort_indicator.fg)
 		write(sort_char, {right_border_x - 2, 1})

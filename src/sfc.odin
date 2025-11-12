@@ -94,6 +94,7 @@ update :: proc() {
 			if i.key == .Insert do toggle_selection_focused_file(true)
 			if i.key == .Semicolon do deselect_all()
 			if i.key == .Percent do select_all()
+			if i.key == .Period do toggle_show_hidden_files()
 		case t.Mouse_Input:
 			_last_mouse_event = i
 		}
