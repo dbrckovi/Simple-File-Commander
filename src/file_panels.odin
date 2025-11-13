@@ -41,6 +41,11 @@ SortDirection :: enum {
 	descending,
 }
 
+AdvanceFocusMode :: enum {
+	none,
+	up,
+	down,
+}
 
 //Additional File_Mode values that are missing in core:os
 File_Mode_Other_Execute :: os.File_Mode(1 << 0)
@@ -206,9 +211,18 @@ cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
 }
 
 sort_files :: proc(panel: ^FilePanel) {
-	compare_proc := compare_file_info_by_name_asc
-	if panel.sort_direction == .descending {
-		compare_proc = compare_file_info_by_name_desc
+	compare_proc: proc(_: SfcFileInfo, _: SfcFileInfo) -> int
+
+	if panel.sort_column == .date {
+		compare_proc =
+			panel.sort_direction == .ascending ? compare_file_info_by_date_asc : compare_file_info_by_date_desc
+	} else if panel.sort_column == .size {
+		compare_proc =
+			panel.sort_direction == .ascending ? compare_file_info_by_size_asc : compare_file_info_by_size_desc
+	} else {
+		//name (and fallback for when I fuck up something)
+		compare_proc =
+			panel.sort_direction == .ascending ? compare_file_info_by_name_asc : compare_file_info_by_name_desc
 	}
 
 	sort.quick_sort_proc(panel.files[:], compare_proc)
@@ -217,15 +231,18 @@ sort_files :: proc(panel: ^FilePanel) {
 /*
 	Switches the sort mode to the specified column for the focused panel.
 	@param panel: panel whose sorting will be affected
-	@param column: column to which the sorting will be set
+	@param column: column to which the sorting will be set (all except attributes)
 	@param direction: sort direction to set. If null, sort direction will be automatically set
+	@param reload: if true, panels will be automatically refreshed
 */
-set_sort_column_auto :: proc(
+set_sort_column :: proc(
 	panel: ^FilePanel,
 	column: FilePanelColumn,
 	direction: Maybe(SortDirection) = nil,
 	reload: bool = true,
 ) {
+	assert(column != .attributes) //I don't sort by this column
+
 	dir, direction_specified := direction.?
 	if direction_specified {
 		panel.sort_direction = dir
@@ -278,11 +295,15 @@ enforce_directories_first :: proc(a, b: SfcFileInfo) -> (int, bool) {
 	Selects or deselects focused file in a focused panel
 	@param advance_focus: if true, next file will be focused after selection
 */
-toggle_selection_focused_file :: proc(advance_focus: bool = false) {
+toggle_selection_focused_file :: proc(advance_focus: AdvanceFocusMode = .none) {
 	file := get_focused_file_info()
 	set_file_selected(file, !file.selected)
-	if advance_focus {
+
+	#partial switch (advance_focus) {
+	case .down:
 		move_file_focus(1)
+	case .up:
+		move_file_focus(-1)
 	}
 }
 
@@ -314,7 +335,7 @@ compare_file_info_by_name_asc :: proc(a, b: SfcFileInfo) -> int {
 		return ret
 	}
 
-	return compare_file_name(a.file.name, b.file.name)
+	return compare_file_names(a.file.name, b.file.name)
 }
 
 compare_file_info_by_name_desc :: proc(a, b: SfcFileInfo) -> int {
@@ -323,16 +344,45 @@ compare_file_info_by_name_desc :: proc(a, b: SfcFileInfo) -> int {
 		return ret
 	}
 
-	return -compare_file_name(a.file.name, b.file.name)
+	return -compare_file_names(a.file.name, b.file.name)
 }
 
-compare_file_info_by_date :: proc(a, b: os.File_Info) -> int {
-	panic("Unimplemented")
+compare_file_info_by_date_asc :: proc(a, b: SfcFileInfo) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return compare_dates(a.file.modification_time, b.file.modification_time)
 }
 
-compare_file_info_by_size :: proc(a, b: os.File_Info) -> int {
-	panic("Unimplemented")
+compare_file_info_by_date_desc :: proc(a, b: SfcFileInfo) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return -compare_dates(a.file.modification_time, b.file.modification_time)
 }
+
+compare_file_info_by_size_asc :: proc(a, b: SfcFileInfo) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return compare_sizes(a.file.size, b.file.size)
+}
+
+compare_file_info_by_size_desc :: proc(a, b: SfcFileInfo) -> int {
+	ret, enforce := enforce_directories_first(a, b)
+	if enforce {
+		return ret
+	}
+
+	return -compare_sizes(a.file.size, b.file.size)
+}
+
 
 /*
 	Moves file focused_row_index of currently active panel up or down.

@@ -41,6 +41,7 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
    
 # Cleanup TODO:
 
+ - refactor 'compare' procedures. There are too many doing very similar thing
  - Make drawing procedures consistent
     - some take temp_clor, some don't
     - some take colors, some don't

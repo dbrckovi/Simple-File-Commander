@@ -141,6 +141,16 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 	//background
 	paint_rectangle({int(left + 1), 1, int(right - left - 1), int(bottom - 1)}, panel_inner_bg)
 
+	//focused line
+	if _focused_panel == panel && len(panel.files) > 0 {
+		paint_rectangle(
+			{int(left) + 1, panel.focused_row_index + 2, int(right) - 1, 1},
+			_current_theme.focused_file_row.bg,
+			true,
+		)
+	}
+
+
 	//dynamic columns
 	#reverse for col in _settings.columns {
 		//TODO: read comment below and find out

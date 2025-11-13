@@ -2,6 +2,7 @@ package sfc
 
 import "core:os"
 import "core:strings"
+import "core:time"
 
 /*
 	Compares file names.
@@ -9,7 +10,7 @@ import "core:strings"
 	Case-insensitive (ex: 'AAA' is the same as 'AAA')
 	Leading dot in hidden files is ignored (ex: '.aaa' is the same as 'aaa')
 */
-compare_file_name :: proc(a, b: string) -> int {
+compare_file_names :: proc(a, b: string) -> int {
 
 	a_dotless: string
 	b_dotless: string
@@ -37,6 +38,20 @@ compare_file_name :: proc(a, b: string) -> int {
 	} else {
 		return ret
 	}
+}
+
+compare_dates :: proc(a, b: time.Time) -> int {
+	//TODO: find better algorithm or at least make generic
+	if a._nsec > b._nsec do return 1
+	else if a._nsec < b._nsec do return -1
+	else do return 0
+}
+
+compare_sizes :: proc(a, b: i64) -> int {
+	//TODO: find better algorithm or at least make generic
+	if a > b do return 1
+	else if a < b do return -1
+	else do return 0
 }
 
 contains :: proc(array: ^$T/[dynamic]$E, arg: E) -> bool {
