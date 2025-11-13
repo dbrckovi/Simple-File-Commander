@@ -8,7 +8,6 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
 
  - [-] Decide if Control will be bindable because gnome terminal intercepts C-j, C-l, C-o, etc.
        or try to update TermCL
- - [-] Sorting seems to work only for names
  - [-] Make key mapper (load from file, default if not found)
  - [-] decide if mod keys will be strict or flexible
        maybe...
