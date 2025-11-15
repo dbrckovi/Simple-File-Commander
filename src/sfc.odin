@@ -7,17 +7,17 @@ import "core:os"
 import "core:strings"
 import "core:sys/posix"
 
+//TODO: Move all of this to a local variable (and pass them to every proc that's now using them directly)
 _application_name := "Simple File Commander" //Application name for displaying in GUI
 _application_name_short := "sfc" //Name for directories, binaries, links, etc
 _should_run := true //Once this becomes false, program exits
-_last_keyboard_event: t.Keyboard_Input //Last input received from keyboard
-_last_mouse_event: t.Mouse_Input //Last input received from mouse
 _pid: posix.pid_t //This program's process ID
 _left_panel: FilePanel //Left panel data
 _right_panel: FilePanel //Right panel data
 _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
+_current_dialog: Widget //Pointer to a currently visible dialog (it steals all input)
 
 _last_error: os.Error = nil
 _debug_message: string = {}
@@ -56,7 +56,6 @@ init_panels :: proc() {
 	Waits for something interesting to happen and handles it
 */
 update :: proc() {
-
 	input, screen_size_changed := wait_for_interesting_event()
 
 	if screen_size_changed {
@@ -68,38 +67,54 @@ update :: proc() {
 	}
 
 	if input != nil {
-
-		switch i in input {
-		case t.Keyboard_Input:
-			//TODO: handle through keymap (which needs to be developed)
-			_last_keyboard_event = i
-			if i.key == .Escape do _should_run = false
-			if i.key == .Tab do swap_focused_panel()
-			if i.key == .J do cd_up(_focused_panel)
-			if i.key == .L do navigate_focused_directory()
-			if i.key == .Backspace do cd_up(_focused_panel)
-			if i.key == .K do move_file_focus(1)
-			if i.key == .I do move_file_focus(-1)
-			if i.key == .Arrow_Down do move_file_focus(1)
-			if i.key == .Arrow_Up do move_file_focus(-1)
-			if i.key == .Arrow_Left do cd_up(_focused_panel)
-			if i.key == .Arrow_Right do navigate_focused_directory()
-			if i.key == .Enter do activate_focused_file_info()
-			if i.key == .Num_1 do set_sort_column(_focused_panel, .name)
-			if i.key == .Num_2 do set_sort_column(_focused_panel, .size)
-			if i.key == .Num_3 do set_sort_column(_focused_panel, .date)
-			if i.key == .Insert do toggle_selection_focused_file(.down)
-			if i.key == .A do select_all()
-			if i.key == .S do toggle_selection_focused_file(.none)
-			if i.key == .D do deselect_all()
-			if i.key == .X do toggle_selection_focused_file(.down)
-			if i.key == .W do toggle_selection_focused_file(.up)
-			if i.key == .Semicolon do deselect_all()
-			if i.key == .Percent do select_all()
-			if i.key == .Period do toggle_show_hidden_files()
-		case t.Mouse_Input:
-			_last_mouse_event = i
+		if _current_dialog != {} {
+			_current_dialog.procedures.handle_input(input)
+		} else {
+			handle_input_main(input)
 		}
+	}
+}
+
+/*
+	Handles mouse and keyboard input when there are not dialogs shown
+*/
+handle_input_main :: proc(input: t.Input) {
+	switch i in input {
+	case t.Keyboard_Input:
+		if i.key == .Escape do _should_run = false
+		if i.key == .Tab do swap_focused_panel()
+		if i.key == .J do cd_up(_focused_panel)
+		if i.key == .L do navigate_focused_directory()
+		if i.key == .Backspace do cd_up(_focused_panel)
+		if i.key == .K do move_file_focus(1)
+		if i.key == .I do move_file_focus(-1)
+		if i.key == .Arrow_Down do move_file_focus(1)
+		if i.key == .Arrow_Up do move_file_focus(-1)
+		if i.key == .Arrow_Left do cd_up(_focused_panel)
+		if i.key == .Arrow_Right do navigate_focused_directory()
+		if i.key == .Enter do activate_focused_file_info()
+		if i.key == .Num_1 do set_sort_column(_focused_panel, .name)
+		if i.key == .Num_2 do set_sort_column(_focused_panel, .size)
+		if i.key == .Num_3 do set_sort_column(_focused_panel, .date)
+		if i.key == .Insert do toggle_selection_focused_file(.down)
+		if i.key == .A do select_all()
+		if i.key == .S do toggle_selection_focused_file(.none)
+		if i.key == .D do deselect_all()
+		if i.key == .X do toggle_selection_focused_file(.down)
+		if i.key == .W do toggle_selection_focused_file(.up)
+		if i.key == .Semicolon do deselect_all()
+		if i.key == .Percent do select_all()
+		if i.key == .Period do toggle_show_hidden_files()
+		if i.key == .Space {
+			if _current_dialog == {} {
+				msg := strings.clone("message text content")
+				title := strings.clone("msgtitle")
+				messagebox_create(msg, title)
+			}
+		}
+
+	case t.Mouse_Input:
+	//todo: handle mouse
 	}
 }
 
