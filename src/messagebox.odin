@@ -29,6 +29,6 @@ messagebox_create :: proc(text, title: string, allocator := context.allocator) -
 }
 
 draw_messagebox_content :: proc(data: MessageBoxData, rect: Rectangle) {
-	write_cropped(data.text, {uint(rect.x), uint(rect.y)}, uint(rect.w) + uint(rect.x))
+	write_block(data.text, rect)
 }
 

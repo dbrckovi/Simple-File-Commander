@@ -580,6 +580,20 @@ write_cropped :: proc(
 	}
 }
 
+write_block :: proc(text: string, rect: Rectangle) {
+
+	lines: [dynamic]string = wrap_text(text, rect.w, context.temp_allocator)
+
+	/*
+	TODO: Write each line for as long there are lines and space
+	- Text justification (horizontal and vertical)
+	- Return something to indicate when not all lines fit the rectangle
+	*/
+
+	write_cropped(text, {uint(rect.x), uint(rect.y)}, uint(rect.w) + uint(rect.x))
+}
+
+
 /*
 	Sets new color style.
 	Only replaces colors which are not 'nil' and if they are different than last used values

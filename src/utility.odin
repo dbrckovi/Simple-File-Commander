@@ -64,3 +64,18 @@ contains :: proc(array: ^$T/[dynamic]$E, arg: E) -> bool {
 	return false
 }
 
+wrap_text :: proc(text: string, width: int, allocator := context.allocator) -> [dynamic]string {
+	lines: [dynamic]string
+
+	/*
+	TODO:
+	- split into words by spaces (don't forget new line char)
+	- if word is longer than width, force split after last character
+	- make string builder
+	- keep adding words into stringbuilder for as long as there is space for next word
+	- when there is no space for next word or \n is encountered commit string builder to array of lines and reset builder
+	*/
+
+	return lines
+}
+
