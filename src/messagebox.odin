@@ -1,54 +1,34 @@
 package sfc
 
 import t "../lib/TermCL"
+import "core:strings"
 
 MessageBoxData :: struct {
 	text: string,
 }
 
-messagebox_create :: proc(text, title: string) {
-	assert(_current_dialog == {})
+/*
+	Creates and returns a MessageBox widget
+	@params text: text to be shown by the messagebox.
+			String is cloned using context.allocator.
+	@params title: title of the messagebox.
+			String is cloned using context.allocator.
+*/
+messagebox_create :: proc(text, title: string, allocator := context.allocator) -> Widget {
+	effective_text: string = len(text) > 0 ? strings.clone(text, allocator) : {}
+	effective_title: string = len(title) > 0 ? strings.clone(title, allocator) : {}
 
-	_current_dialog = {
-		appearance = {
-			location = WidgetLocation_Center{height = 4},
-			border_style = .single,
-			title = title,
-			main_color = _current_theme.dialog_main,
-			title_color = _current_theme.dialog_main,
+	return Widget {
+		location = WidgetLocation_Center {
+			height = 4, //TODO: measure string
 		},
-		procedures = {
-			handle_input = messagebox_handle_input,
-			draw_content = messagebox_draw_content,
-		},
-		data = MessageBoxData{text = text},
+		data = MessageBoxData{text = effective_text},
+		title = effective_title,
+		border_style = .double,
 	}
 }
 
-messagebox_destroy :: proc() {
-	data, ok := _current_dialog.data.(MessageBoxData)
-	if !ok {
-		panic("Widget is not a Messagebox")
-	}
-
-	widget_destroy()
-	delete(data.text)
-	_current_dialog = {}
-}
-
-messagebox_handle_input :: proc(input: t.Input) {
-	#partial switch i in input {
-	case t.Keyboard_Input:
-		if i.key == .Escape {
-			messagebox_destroy()
-		}
-	}
-}
-
-messagebox_draw_content :: proc() {
-	background_drawn := widget_draw_background()
-	if background_drawn {
-		//TODO: draw content
-	}
+draw_messagebox_content :: proc(data: MessageBoxData, rect: Rectangle) {
+	write_cropped(data.text, {uint(rect.x), uint(rect.y)}, uint(rect.w) + uint(rect.x))
 }
 

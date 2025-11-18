@@ -59,7 +59,6 @@ draw :: proc() {
 	draw_main_gui()
 }
 
-
 /*
 	Draws borders for main gui
 */
@@ -110,7 +109,7 @@ draw_main_gui :: proc() {
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 
 	if _current_dialog != {} {
-		_current_dialog.procedures.draw_content()
+		draw_widget(&_current_dialog)
 	}
 }
 
@@ -624,5 +623,96 @@ get_max_visible_files :: proc() -> int {
 
 get_main_splitter_x :: proc() -> uint {
 	return uint(f32(_screen.size.w) * _splitter_fraction)
+}
+
+
+/*
+	Draws specified widget to the screen
+*/
+draw_widget :: proc(widget: ^Widget) {
+	content_rect := draw_widget_background(widget.location, widget.border_style, widget.title)
+
+	switch data in widget.data {
+	case CommandBarData:
+		draw_command_bar_content(data, content_rect)
+	case MessageBoxData:
+		draw_messagebox_content(data, content_rect)
+	}
+}
+
+/*
+	Draws widget background, border and title
+	@param location: location of the background
+	@param border: defines border style for widges types that can have borders
+	@param title: widget title, only for widget types that can have title
+	@returns Rectangle for widget content
+*/
+draw_widget_background :: proc(
+	location: WidgetLocation,
+	border: BorderStyle,
+	title: string,
+) -> Rectangle {
+
+	background_rect: Rectangle = {}
+	effective_border := border
+	effective_title: string = len(title) != 0 ? strings.clone(title, context.temp_allocator) : {}
+	content_rect: Rectangle = {}
+
+	switch loc in location {
+
+	case WidgetLocation_Center:
+		screen_center_x := _screen.size.w / 2
+		screen_center_y := _screen.size.h / 2
+		background_rect.h = int(loc.height)
+		if effective_border != .none {
+			background_rect.h += 2
+		}
+		background_rect.w = int(_screen.size.w) - 4
+		background_rect.x = int(screen_center_x) - background_rect.w / 2
+		background_rect.y = int(screen_center_y) - background_rect.h / 2
+		if background_rect.h > int(_screen.size.h) {
+			background_rect.y = 0
+			background_rect.h = int(_screen.size.h)
+		}
+
+	case WidgetLocation_BottomLine:
+		effective_border = .none
+		effective_title = {}
+		background_rect.x = 0
+		background_rect.y = int(_screen.size.h) - 1
+		background_rect.w = int(_screen.size.w)
+		background_rect.h = 1
+
+	case WidgetLocation_FullScreen:
+		background_rect.x = 2
+		background_rect.y = 1
+		background_rect.w = int(_screen.size.w) - 4
+		background_rect.h = int(_screen.size.h) - 2
+
+	}
+
+	border_size := effective_border == .none ? 0 : 1
+	content_rect.x = background_rect.x + border_size
+	content_rect.y = background_rect.y + border_size
+	content_rect.w = background_rect.w - border_size * 2
+	content_rect.h = background_rect.h - border_size * 2
+
+	if content_rect.w < 1 || content_rect.h < 1 {
+		return {}
+	}
+
+	paint_rectangle(background_rect, _current_theme.dialog_main.bg)
+
+	if effective_border != .none {
+		set_color_pair(_current_theme.dialog_main)
+		draw_rectangle(background_rect, effective_border == .double)
+	}
+
+	if len(effective_title) > 0 {
+		set_color_pair(_current_theme.dialog_title)
+		write(effective_title, {uint(background_rect.x + 2), uint(background_rect.y)})
+	}
+
+	return content_rect
 }
 

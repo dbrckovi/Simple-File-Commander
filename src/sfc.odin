@@ -17,7 +17,7 @@ _right_panel: FilePanel //Right panel data
 _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
-_current_dialog: Widget //Pointer to a currently visible dialog (it steals all input)
+_current_dialog: Widget //currently displayed dialog widget (if any)
 
 _last_error: os.Error = nil
 _debug_message: string = {}
@@ -68,7 +68,14 @@ update :: proc() {
 
 	if input != nil {
 		if _current_dialog != {} {
-			_current_dialog.procedures.handle_input(input)
+			i, is_keyboard := input.(t.Keyboard_Input)
+			if is_keyboard {
+				if i.key == .Escape {
+					destroy_current_dialog()
+				}
+			}
+
+			handle_widget_input(&_current_dialog, input)
 		} else {
 			handle_input_main(input)
 		}
@@ -107,9 +114,7 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .Period do toggle_show_hidden_files()
 		if i.key == .Space {
 			if _current_dialog == {} {
-				msg := strings.clone("message text content")
-				title := strings.clone("msgtitle")
-				messagebox_create(msg, title)
+				_current_dialog = messagebox_create("message text content", "msgtitle")
 			}
 		}
 
