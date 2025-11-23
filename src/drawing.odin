@@ -25,6 +25,15 @@ Rectangle :: struct {
 }
 
 /*
+	Enumerates ways how text (or anything can be justified)
+*/
+Justification :: enum {
+	near, //top / left
+	center,
+	far, //bottom / right
+}
+
+/*
 	Initializes the terminal screen
 */
 init_screen :: proc() {
@@ -580,17 +589,31 @@ write_cropped :: proc(
 	}
 }
 
-write_block :: proc(text: string, rect: Rectangle) {
+write_block :: proc(
+	text: string,
+	rect: Rectangle,
+	horizontal_justification: Justification = .center,
+	vertical_justification: Justification = .center,
+) {
+
+	//TODO: this seems to panic when screen is too small
 
 	lines: [dynamic]string = wrap_text(text, rect.w, context.temp_allocator)
+
+	max_width := uint(rect.w) + uint(rect.x)
+	for line, i in lines {
+		x := uint(rect.x)
+		y := uint(rect.y + i)
+		if y < uint(rect.h + rect.y) {
+			write_cropped(line, {x, y}, max_width)
+		}
+	}
 
 	/*
 	TODO: Write each line for as long there are lines and space
 	- Text justification (horizontal and vertical)
 	- Return something to indicate when not all lines fit the rectangle
 	*/
-
-	write_cropped(text, {uint(rect.x), uint(rect.y)}, uint(rect.w) + uint(rect.x))
 }
 
 

@@ -114,7 +114,10 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .Period do toggle_show_hidden_files()
 		if i.key == .Space {
 			if _current_dialog == {} {
-				_current_dialog = messagebox_create("message text content", "msgtitle")
+				_current_dialog = messagebox_create(
+					"message text content.\nDruga linija\nTreča a ova je ogromna s brdom smeća jer mi treba za test",
+					"msgtitle",
+				)
 			}
 		}
 
