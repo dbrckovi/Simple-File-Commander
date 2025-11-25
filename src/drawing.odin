@@ -562,7 +562,7 @@ Writes string to screen, cropping it at screen width, or at custom 'max_width'
 write_cropped :: proc(
 	text: string,
 	location: [2]uint,
-	max_width: uint = 0,
+	max_width: uint = 0, //TODO: This is named poorly
 	align_right: bool = false,
 ) {
 	crop_at_column: uint = _screen.size.w
@@ -596,23 +596,29 @@ write_block :: proc(
 	vertical_justification: Justification = .center,
 ) {
 
-	//TODO: this seems to panic when screen is too small
+	// TODO: this seems to panic when screen is too small
+	// TODO: implement vertical_justification
 
 	lines: [dynamic]string = wrap_text(text, rect.w, context.temp_allocator)
 
 	max_width := uint(rect.w) + uint(rect.x)
 	for line, i in lines {
 		x := uint(rect.x)
+
+		if horizontal_justification == .far {
+			x = uint(rect.w - strings.rune_count(line)) + uint(rect.x)
+		} else if horizontal_justification == .center {
+			x = uint(rect.w - strings.rune_count(line)) / 2 + uint(rect.x)
+		}
+
 		y := uint(rect.y + i)
 		if y < uint(rect.h + rect.y) {
-			write_cropped(line, {x, y}, max_width)
+			write(line, {x, y})
 		}
 	}
 
 	/*
-	TODO: Write each line for as long there are lines and space
-	- Text justification (horizontal and vertical)
-	- Return something to indicate when not all lines fit the rectangle
+	TODO: Return something to indicate when not all lines fit the rectangle
 	*/
 }
 

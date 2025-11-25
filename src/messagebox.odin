@@ -31,3 +31,4 @@ messagebox_create :: proc(text, title: string, allocator := context.allocator) -
 draw_messagebox_content :: proc(data: MessageBoxData, rect: Rectangle) {
 	write_block(data.text, rect)
 }
+
