@@ -61,13 +61,15 @@ update :: proc() {
 	if screen_size_changed {
 		deinit_screen()
 		init_screen()
-
 		recalculate_indexes(&_left_panel)
 		recalculate_indexes(&_right_panel)
+		if _current_dialog != nil {
+			handle_layout_change(&_current_dialog)
+		}
 	}
 
 	if input != nil {
-		if _current_dialog != {} {
+		if _current_dialog != nil {
 			i, is_keyboard := input.(t.Keyboard_Input)
 			if is_keyboard {
 				if i.key == .Escape {
@@ -113,11 +115,13 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .Percent do select_all()
 		if i.key == .Period do toggle_show_hidden_files()
 		if i.key == .Space {
-			if _current_dialog == {} {
-				_current_dialog = messagebox_create(
+			if _current_dialog == nil {
+				_current_dialog = create_messagebox(
 					"message text content.\nDruga linija\nTreča a ova je ogromna s brdom smeća jer mi treba za test",
 					"msgtitle",
 				)
+			} else {
+				panic("Another dialog is already open")
 			}
 		}
 

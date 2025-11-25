@@ -2,29 +2,19 @@ package sfc
 
 import t "../lib/TermCL"
 
-Widget :: struct {
-	title:        string,
-	border_style: BorderStyle,
-	location:     WidgetLocation,
-	data:         WidgetData,
+Widget :: union {
+	MessageBox,
+	CommandBar,
 }
 
 /*
 	Enumerates possible locations for dialogs
 */
-WidgetLocation :: union {
-	WidgetLocation_FullScreen, //dialog will be displayed accross almost full screen
-	WidgetLocation_Center, //dialog will be in center of screen as small as reasonably possible
-	WidgetLocation_BottomLine, //dialog will be drawn at the bottom line of the scrreen
+WidgetLocation :: enum {
+	full_screen,
+	middle,
+	bottom_line,
 }
-
-WidgetLocation_FullScreen :: struct {}
-
-WidgetLocation_Center :: struct {
-	height: uint, //required height for content (if possible)
-}
-
-WidgetLocation_BottomLine :: struct {}
 
 BorderStyle :: enum {
 	none,
@@ -32,27 +22,28 @@ BorderStyle :: enum {
 	double,
 }
 
-/*
-	Union which enumerates all widget types and serves as unified data storage
-*/
-WidgetData :: union {
-	MessageBoxData,
-	CommandBarData,
-}
-
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 
 }
 
-destroy_current_dialog :: proc() {
-	if len(_current_dialog.title) > 0 do delete(_current_dialog.title)
+handle_layout_change :: proc(widget: ^Widget) {
+	switch &widget in _current_dialog {
+	case MessageBox:
+		perform_messagebox_layout(&widget)
+	case CommandBar:
+		perform_command_bar_layout(&widget)
+	}
+}
 
-	switch w in _current_dialog.data {
-	case MessageBoxData:
-		if len(w.text) > 0 do delete(w.text)
-	case CommandBarData:
+
+destroy_current_dialog :: proc() {
+	switch &widget in _current_dialog {
+	case MessageBox:
+		destroy_messagebox(&widget)
+	case CommandBar:
+		destroy_command_bar(&widget)
 	}
 
-	_current_dialog = {}
+	_current_dialog = nil
 }
 

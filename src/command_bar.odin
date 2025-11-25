@@ -1,10 +1,18 @@
 package sfc
 
-CommandBarData :: struct {
+CommandBar :: struct {
 	//previous command
 }
 
-draw_command_bar_content :: proc(data: CommandBarData, rect: Rectangle) {
+draw_command_bar :: proc(data: ^CommandBar) {
+
+}
+
+perform_command_bar_layout :: proc(data: ^CommandBar) {
+
+}
+
+destroy_command_bar :: proc(box: ^CommandBar) {
 
 }
 

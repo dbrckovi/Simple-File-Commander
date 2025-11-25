@@ -24,14 +24,10 @@ Rectangle :: struct {
 	h: int,
 }
 
-/*
-	Enumerates ways how text (or anything can be justified)
-*/
-Justification :: enum {
-	near, //top / left
-	center,
-	far, //bottom / right
+draw_groupbox :: proc(rectangle: Rectangle, title: string, border: BorderStyle) {
+
 }
+
 
 /*
 	Initializes the terminal screen
@@ -117,7 +113,7 @@ draw_main_gui :: proc() {
 	draw_panel(&_left_panel, 0, main_splitter_x, panel_bottom_x)
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 
-	if _current_dialog != {} {
+	if _current_dialog != nil {
 		draw_widget(&_current_dialog)
 	}
 }
@@ -589,40 +585,6 @@ write_cropped :: proc(
 	}
 }
 
-write_block :: proc(
-	text: string,
-	rect: Rectangle,
-	horizontal_justification: Justification = .center,
-	vertical_justification: Justification = .center,
-) {
-
-	// TODO: this seems to panic when screen is too small
-	// TODO: implement vertical_justification
-
-	lines: [dynamic]string = wrap_text(text, rect.w, context.temp_allocator)
-
-	max_width := uint(rect.w) + uint(rect.x)
-	for line, i in lines {
-		x := uint(rect.x)
-
-		if horizontal_justification == .far {
-			x = uint(rect.w - strings.rune_count(line)) + uint(rect.x)
-		} else if horizontal_justification == .center {
-			x = uint(rect.w - strings.rune_count(line)) / 2 + uint(rect.x)
-		}
-
-		y := uint(rect.y + i)
-		if y < uint(rect.h + rect.y) {
-			write(line, {x, y})
-		}
-	}
-
-	/*
-	TODO: Return something to indicate when not all lines fit the rectangle
-	*/
-}
-
-
 /*
 	Sets new color style.
 	Only replaces colors which are not 'nil' and if they are different than last used values
@@ -673,13 +635,13 @@ get_main_splitter_x :: proc() -> uint {
 	Draws specified widget to the screen
 */
 draw_widget :: proc(widget: ^Widget) {
-	content_rect := draw_widget_background(widget.location, widget.border_style, widget.title)
+	// content_rect := draw_widget_background(widget.location, widget.border_style, widget.title)
 
-	switch data in widget.data {
-	case CommandBarData:
-		draw_command_bar_content(data, content_rect)
-	case MessageBoxData:
-		draw_messagebox_content(data, content_rect)
+	switch &w in widget {
+	case CommandBar:
+		draw_command_bar(&w)
+	case MessageBox:
+		draw_messagebox(&w)
 	}
 }
 
@@ -701,12 +663,12 @@ draw_widget_background :: proc(
 	effective_title: string = len(title) != 0 ? strings.clone(title, context.temp_allocator) : {}
 	content_rect: Rectangle = {}
 
-	switch loc in location {
+	switch location {
 
-	case WidgetLocation_Center:
+	case .middle:
 		screen_center_x := _screen.size.w / 2
 		screen_center_y := _screen.size.h / 2
-		background_rect.h = int(loc.height)
+		// background_rect.h = int(loc.height)
 		if effective_border != .none {
 			background_rect.h += 2
 		}
@@ -718,7 +680,7 @@ draw_widget_background :: proc(
 			background_rect.h = int(_screen.size.h)
 		}
 
-	case WidgetLocation_BottomLine:
+	case .bottom_line:
 		effective_border = .none
 		effective_title = {}
 		background_rect.x = 0
@@ -726,7 +688,7 @@ draw_widget_background :: proc(
 		background_rect.w = int(_screen.size.w)
 		background_rect.h = 1
 
-	case WidgetLocation_FullScreen:
+	case .full_screen:
 		background_rect.x = 2
 		background_rect.y = 1
 		background_rect.w = int(_screen.size.w) - 4
