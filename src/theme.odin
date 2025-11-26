@@ -72,7 +72,7 @@ init_theme :: proc(theme: ^Theme) {
 	theme.sort_indicator.fg = hex_to_rgb("#FFDD55")
 	theme.sort_indicator.use_fg = true
 
-	theme.error_message.fg = hex_to_rgb("#FF4422")
+	theme.error_message.fg = hex_to_rgb("#FF6622")
 	theme.error_message.use_fg = true
 
 	theme.debug_message.fg = hex_to_rgb("#44FF22")

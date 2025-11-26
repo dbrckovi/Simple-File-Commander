@@ -124,6 +124,13 @@ handle_input_main :: proc(input: t.Input) {
 				panic("Another dialog is already open")
 			}
 		}
+		if i.key == .Colon {
+			if _current_dialog == nil {
+				_current_dialog = create_command_bar()
+			} else {
+				panic("Another dialog is already open")
+			}
+		}
 
 	case t.Mouse_Input:
 	//todo: handle mouse

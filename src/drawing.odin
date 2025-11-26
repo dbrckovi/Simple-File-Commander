@@ -533,18 +533,12 @@ paint_rectangle :: proc(rect: Rectangle, color: t.Any_Color, temp_color: bool = 
 	}
 }
 
-/*
-	Writes text to location
- 	- text: text to write
- 	- location: screen coordinates where text writing will start
- 	- foreground: optional foreground color
- 	- background: optional background color
- 	- temp_colors: if true, after writing resets colors to previous values
+write :: proc {
+	write_string,
+	write_rune,
+}
 
-
- 	Note: if color is not defined, a last used color will be used
-*/
-write :: proc(text: string, location: [2]uint) {
+write_string :: proc(text: string, location: [2]uint) {
 	if location.y >= _screen.size.h || location.x >= _screen.size.w {
 		return
 	}
@@ -552,6 +546,17 @@ write :: proc(text: string, location: [2]uint) {
 	move_cursor(location.x, location.y)
 	t.write(&_screen, text)
 }
+
+write_rune :: proc(char: rune, location: [2]uint) {
+	if location.y >= _screen.size.h || location.x >= _screen.size.w {
+		return
+	}
+
+	move_cursor(location.x, location.y)
+	t.write(&_screen, char)
+}
+
+
 /*
 Writes string to screen, cropping it at screen width, or at custom 'max_width'
 */

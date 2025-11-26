@@ -24,14 +24,19 @@ BorderStyle :: enum {
 
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 
+	#partial switch &w in widget {
+	case CommandBar:
+		{
+			handle_input_command_bar(&w, input)
+		}
+	}
+
 }
 
 handle_layout_change :: proc(widget: ^Widget) {
-	switch &widget in _current_dialog {
+	#partial switch &widget in _current_dialog {
 	case MessageBox:
 		perform_messagebox_layout(&widget)
-	case CommandBar:
-		perform_command_bar_layout(&widget)
 	}
 }
 

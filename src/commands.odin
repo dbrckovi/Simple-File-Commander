@@ -1,5 +1,9 @@
 package sfc
 
+import "core:os"
+import "core:path/filepath"
+import "core:strings"
+
 //TODO: move logic for parsing and executing ':' commands here
 
 /*
@@ -78,5 +82,60 @@ navigate_focused_directory :: proc() {
 			cd(_focused_panel, file_info.file.fullpath)
 		}
 	}
+}
+
+/*
+	Changes current directory of specified panel one level up
+*/
+cd_up :: proc(panel: ^FilePanel) {
+	parent_dir := filepath.dir(panel.current_dir, context.temp_allocator)
+
+	if strings.equal_fold(parent_dir, panel.current_dir) {
+		return
+	}
+
+	max_visible_files := get_max_visible_files()
+	max_visible_index := max_visible_files - 1
+	came_from_dir := strings.clone(panel.current_dir, context.temp_allocator)
+	error := cd(panel, parent_dir)
+
+	//focus directory from which we came
+	loop: for file, index in panel.files {
+		if strings.compare(file.file.fullpath, came_from_dir) == 0 {
+			if index <= max_visible_index {
+				panel.focused_row_index = index
+			} else {
+				panel.focused_row_index = max_visible_index
+				panel.first_file_index = index - max_visible_files + 1
+			}
+
+			break loop
+		}
+	}
+
+	if error != os.General_Error.None {
+		_last_error = error
+	}
+
+}
+
+/*
+	Changes current directory of specified panel to what ever was passed in
+*/
+cd :: proc(panel: ^FilePanel, directory: string) -> os.Error {
+	if !os.exists(directory) {
+		return os.General_Error.Not_Exist
+	}
+	if !os.is_dir(directory) {
+		return os.General_Error.Not_Dir
+	}
+
+	same_directory := strings.compare(directory, panel.current_dir)
+	panel.current_dir = strings.clone(directory, context.temp_allocator)
+	reload_file_panel(panel, same_directory == 0)
+	panel.first_file_index = 0
+	panel.focused_row_index = 0
+
+	return os.General_Error.None
 }
 
