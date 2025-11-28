@@ -90,7 +90,6 @@ update :: proc() {
 handle_input_main :: proc(input: t.Input) {
 	switch i in input {
 	case t.Keyboard_Input:
-		if i.key == .Escape do _should_run = false
 		if i.key == .Tab do swap_focused_panel()
 		if i.key == .J do cd_up(_focused_panel)
 		if i.key == .L do navigate_focused_directory()

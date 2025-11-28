@@ -4,6 +4,7 @@ import t "../lib/TermCL"
 
 key_to_rune :: proc(key: t.Key) -> rune {
 	//TODO: update TermCL and hope it returns keys in a more sane way
+	//It already has raw bytes, it just doesn't forward them (parse_keyboard_input)
 	#partial switch key {
 	case .A:
 		return 'a'
@@ -83,6 +84,68 @@ key_to_rune :: proc(key: t.Key) -> rune {
 		return '"'
 	case .Backslash:
 		return '\\'
+	case .Minus:
+		return '-'
+	case .Plus:
+		return '+'
+	case .Equal:
+		return '='
+	case .Open_Paren:
+		return '('
+	case .Close_Paren:
+		return ')'
+	case .Open_Curly_Bracket:
+		return '{'
+	case .Close_Curly_Bracket:
+		return '}'
+	case .Open_Square_Bracket:
+		return '['
+	case .Close_Square_Bracket:
+		return ']'
+	case .Colon:
+		return ':'
+	case .Semicolon:
+		return ';'
+	case .Slash:
+		return '/'
+	case .Single_Quote:
+		return '\''
+	case .Period:
+		return '.'
+	case .Asterisk:
+		return '*'
+	case .Backtick:
+		return '`'
+	case .Dollar:
+		return '$'
+	case .Exclamation:
+		return '!'
+	case .Hash:
+		return '#'
+	case .Percent:
+		return '%'
+	case .Ampersand:
+		return '&'
+	case .Tick:
+		return '´'
+	case .Underscore:
+		return '_'
+	case .Caret:
+		return ' '
+	case .Comma:
+		return ','
+	case .Pipe:
+		return '|'
+	case .At:
+		return '@'
+	case .Tilde:
+		return '~'
+	case .Less_Than:
+		return '<'
+	case .Greater_Than:
+		return '>'
+	case .Question_Mark:
+		return '?'
 	case:
 		return {}
 	}

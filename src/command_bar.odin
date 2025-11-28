@@ -15,9 +15,7 @@ CommandAndParams :: struct {
 }
 
 create_command_bar :: proc(allocator := context.allocator) -> CommandBar {
-	bar: CommandBar
-	bar.chars = make([dynamic]rune, allocator)
-	return bar
+	return CommandBar{chars = make([dynamic]rune, allocator)}
 }
 
 draw_command_bar :: proc(bar: ^CommandBar) {
@@ -81,6 +79,7 @@ execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator) {
 	if !ok {
 		set_command_bar_error(bar, "Invalid command format!")
 	} else {
+		//TODO: make some central list so that hints can be displayed
 		if strings.equal_fold(cmd.command, "q") || strings.equal_fold(cmd.command, "quit") {
 			_should_run = false
 		} else {
