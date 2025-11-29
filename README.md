@@ -6,6 +6,7 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
 
 # Important TODO:
 
+ - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings
  - [ ] CommandBar.builder is convoluted. read TODO
  - [ ] Decide if Control will be bindable because gnome terminal intercepts C-j, C-l, C-o, etc.
        or try to update TermCL

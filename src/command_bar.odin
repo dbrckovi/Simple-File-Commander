@@ -98,6 +98,32 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 			cd_up(_focused_panel)
 
 
+		} else if strings.equal_fold(cmd.command, "cd") {
+			if len(cmd.params) > 0 {
+				//TODO: handle special shell directories and environment variables (ex: ~)
+				if cmd.params[0] == "." {
+					reload_file_panel(_focused_panel)
+				} else if cmd.params[0] == ".." {
+					destroy_current_dialog()
+					cd_up(_focused_panel)
+				} else {
+					error := cd(_focused_panel, cmd.params[0])
+					if error == nil {
+						destroy_current_dialog()
+					} else {
+						set_command_bar_error(bar, fmt.tprint(error))
+					}
+				}
+			} else {
+				set_command_bar_error(bar, "Directory parameter is missing")
+			}
+
+
+		} else if strings.equal_fold(cmd.command, "help") || cmd.command == "?" {
+			destroy_current_dialog()
+			_current_dialog = create_text_viewer("TODO: draw help", "Help")
+
+
 		} else {
 			set_command_bar_error(bar, "Invalid command")
 		}

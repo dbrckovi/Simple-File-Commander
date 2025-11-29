@@ -12,6 +12,7 @@ Settings :: struct {
 	icon_link_to_directory: rune,
 	show_hidden_files:      bool,
 	attribute_format:       Attribute_Format,
+	show_welcome_message:   bool,
 }
 
 Attribute_Format :: enum {
@@ -38,6 +39,7 @@ reset_default_settings :: proc() {
 	_settings.icon_link_to_directory = '@'
 	_settings.show_hidden_files = false
 	_settings.attribute_format = .symbolic
+	_settings.show_welcome_message = true
 }
 
 /*
@@ -120,6 +122,11 @@ parse_settings_line :: proc(line: string) -> bool {
 				_settings.attribute_format = .octal
 			case:
 				_settings.attribute_format = .symbolic
+			}
+		case "show_welcome_message":
+			parsed, ok := strconv.parse_bool(value)
+			if ok {
+				_settings.show_welcome_message = parsed
 			}
 		case "columns":
 			parts: []string = strings.split(value, ",", context.temp_allocator)

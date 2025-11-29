@@ -3,13 +3,13 @@ package sfc
 /*
 	Panel with title in the upper left corner and border
 */
-TitlePanel :: struct {
+BoxWithTitle :: struct {
 	title:     string,
 	border:    BorderStyle,
 	rectangle: Rectangle,
 }
 
-draw_title_panel :: proc(panel: ^TitlePanel) {
+draw_box_with_title :: proc(panel: ^BoxWithTitle) {
 
 	paint_rectangle(panel.rectangle, _current_theme.dialog_main.bg)
 

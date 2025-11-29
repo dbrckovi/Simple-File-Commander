@@ -647,6 +647,8 @@ draw_widget :: proc(widget: ^Widget) {
 		draw_command_bar(&w)
 	case MessageBox:
 		draw_messagebox(&w)
+	case TextViewer:
+		draw_text_viewer(&w)
 	}
 }
 

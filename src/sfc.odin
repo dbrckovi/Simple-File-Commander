@@ -42,6 +42,7 @@ init :: proc() {
 	init_screen()
 	init_panels()
 	init_theme(&_current_theme)
+	try_show_welcome_message()
 }
 
 
@@ -170,6 +171,23 @@ set_debug_message :: proc(text: string) {
 
 	if text != {} {
 		_debug_message = strings.clone(text)
+	}
+}
+
+/*
+	Shows welcome message if settings allow it and there are no other dialogs
+*/
+try_show_welcome_message :: proc() {
+	if _settings.show_welcome_message && _current_dialog == nil {
+		title := "Welcome to 'Simple File Commander'"
+		sb := strings.builder_make(context.temp_allocator)
+		strings.write_rune(&sb, '\n')
+		strings.write_string(&sb, "Type :help to see more detailed help.\n")
+		strings.write_string(&sb, "Type :quit or :q to exit the program.\n")
+		strings.write_rune(&sb, '\n')
+		strings.write_string(&sb, "Press 'Esc' to close this message.\n")
+		strings.write_rune(&sb, '\n')
+		_current_dialog = create_messagebox(strings.to_string(sb), title)
 	}
 }
 

@@ -1,10 +1,9 @@
 package sfc
 
-import t "../lib/TermCL"
 import "core:strings"
 
 MessageBox :: struct {
-	panel: TitlePanel,
+	panel: BoxWithTitle,
 	text:  string,
 	lines: [dynamic]string,
 }
@@ -15,6 +14,7 @@ MessageBox :: struct {
 			String is cloned using context.allocator.
 	@params title: title of the messagebox.
 			String is cloned using context.allocator.
+	@params border: defines border style for messagebox
 */
 create_messagebox :: proc(
 	text, title: string,
@@ -30,6 +30,19 @@ create_messagebox :: proc(
 	return box
 }
 
+destroy_messagebox :: proc(box: ^MessageBox) {
+	delete_messagebox_lines(box)
+	if len(box.panel.title) > 0 {
+		delete(box.panel.title)
+	}
+	if len(box.text) > 0 {
+		delete(box.text)
+	}
+}
+
+/*
+	(Re)wraps the messagebox text and size based on current screen size
+*/
 perform_messagebox_layout :: proc(box: ^MessageBox) {
 	EDGE_DISTANCE_H :: 2
 	EDGE_DISTANCE_V :: 1
@@ -49,16 +62,6 @@ perform_messagebox_layout :: proc(box: ^MessageBox) {
 	box.panel.rectangle.y = (int(_screen.size.h) - box.panel.rectangle.h) / 2
 }
 
-destroy_messagebox :: proc(box: ^MessageBox) {
-	delete_messagebox_lines(box)
-	if len(box.panel.title) > 0 {
-		delete(box.panel.title)
-	}
-	if len(box.text) > 0 {
-		delete(box.text)
-	}
-}
-
 delete_messagebox_lines :: proc(box: ^MessageBox) {
 	if len(box.lines) > 0 {
 		for line in box.lines {
@@ -69,7 +72,7 @@ delete_messagebox_lines :: proc(box: ^MessageBox) {
 }
 
 draw_messagebox :: proc(box: ^MessageBox) {
-	draw_title_panel(&box.panel)
+	draw_box_with_title(&box.panel)
 
 	rect := box.panel.rectangle
 	rect = {rect.x + 1, rect.y + 1, rect.w - 2, rect.h - 2}
