@@ -57,7 +57,7 @@ handle_input_command_bar :: proc(bar: ^CommandBar, input: t.Input) {
 					}
 				}
 				if i.key == .Enter {
-					execute_bar_command(bar, context.allocator)
+					try_execute_bar_command(bar, context.allocator)
 				}
 			}
 		}
@@ -66,9 +66,9 @@ handle_input_command_bar :: proc(bar: ^CommandBar, input: t.Input) {
 }
 
 /*
-	Parses and executes command typed into command bar
+	Parses and tries to execute command typed into command bar
 */
-execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator) {
+try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator) {
 	sb := strings.builder_make(context.temp_allocator)
 	for char in bar.chars {
 		strings.write_rune(&sb, char)
@@ -78,10 +78,26 @@ execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator) {
 
 	if !ok {
 		set_command_bar_error(bar, "Invalid command format!")
-	} else {
-		//TODO: make some central list so that hints can be displayed
+	} else { 	//TODO: make some central list so that hints can be displayed
+
 		if strings.equal_fold(cmd.command, "q") || strings.equal_fold(cmd.command, "quit") {
 			_should_run = false
+
+
+		} else if strings.equal_fold(cmd.command, "msgbox") {
+			clear(&bar.chars)
+			text := len(cmd.params) > 0 ? cmd.params[0] : "text not defined"
+			title := len(cmd.params) > 1 ? cmd.params[1] : "title not defined"
+			destroy_current_dialog()
+			_current_dialog = create_messagebox(text, title)
+
+
+		} else if strings.equal_fold(cmd.command, "cd..") ||
+		   strings.equal_fold(cmd.command, "cd_up") {
+			destroy_current_dialog()
+			cd_up(_focused_panel)
+
+
 		} else {
 			set_command_bar_error(bar, "Invalid command")
 		}
