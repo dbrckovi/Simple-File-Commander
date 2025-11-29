@@ -102,6 +102,7 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 			if len(cmd.params) > 0 {
 				//TODO: handle special shell directories and environment variables (ex: ~)
 				if cmd.params[0] == "." {
+					destroy_current_dialog()
 					reload_file_panel(_focused_panel)
 				} else if cmd.params[0] == ".." {
 					destroy_current_dialog()
