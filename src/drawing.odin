@@ -70,7 +70,6 @@ draw :: proc() {
 draw_main_gui :: proc() {
 
 	main_splitter_x := get_main_splitter_x()
-	draw_command_area := should_draw_command_area()
 
 	set_color_pair(_current_theme.main)
 
@@ -82,28 +81,8 @@ draw_main_gui :: proc() {
 	write("╦", {main_splitter_x, 0})
 	write("╩", {main_splitter_x, _screen.size.h - 1})
 
-	//command / error area
-	if draw_command_area {
-		command_area_top_y := _screen.size.h - 3
-		draw_horizontal_line({1, int(command_area_top_y)}, int(_screen.size.w) - 2, true)
-		write("╠", {0, command_area_top_y})
-		write("╩", {main_splitter_x, command_area_top_y})
-		write("╣", {_screen.size.w - 1, command_area_top_y})
-		write(" ", {main_splitter_x, command_area_top_y + 1})
-		write("═", {main_splitter_x, _screen.size.h - 1})
-
-		if _last_error != nil {
-			error_message := fmt.tprintf("Error: %v", _last_error)
-			set_color_pair(_current_theme.error_message)
-			write_cropped(error_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
-		} else if _debug_message != {} {
-			set_color_pair(_current_theme.debug_message)
-			write_cropped(_debug_message, {2, command_area_top_y + 1}, _screen.size.w - 2)
-		}
-	}
-
 	//panel bottom
-	panel_bottom_x := _screen.size.h - (draw_command_area ? 5 : 3)
+	panel_bottom_x := _screen.size.h - 3
 	set_color_pair(_current_theme.main)
 	draw_horizontal_line({1, int(panel_bottom_x)}, int(_screen.size.w) - 2, false)
 	write("╟", {0, panel_bottom_x})
@@ -621,14 +600,8 @@ move_cursor :: proc(x, y: uint) {
 	t.move_cursor(&_screen, y, x)
 }
 
-should_draw_command_area :: proc() -> bool {
-	return _last_error != nil || _debug_message != {}
-}
-
 get_max_visible_files :: proc() -> int {
-	ret := _screen.size.h - 5
-	if should_draw_command_area() do ret -= 2
-	return int(ret)
+	return int(_screen.size.h - 5)
 }
 
 get_main_splitter_x :: proc() -> uint {

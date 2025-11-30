@@ -8,6 +8,7 @@ import "core:path/filepath"
 import "core:sort"
 import "core:strings"
 import "core:time"
+import fs "filesystem"
 
 FilePanel :: struct {
 	arena:             mem.Arena,
@@ -86,7 +87,7 @@ reset_file_panel_memory :: proc(panel: ^FilePanel) {
 	Reloads files in current directory of specified panel
 */
 reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
-	previous_selection: [dynamic]string //TODO: Maybe use normal array instead of
+	previous_selection: [dynamic]string //TODO: Maybe use normal array instead
 
 	if preserve_selection {
 		previous_selection = make([dynamic]string, 0, 0, context.temp_allocator)
@@ -98,17 +99,7 @@ reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
 		}
 	}
 
-	handle, error := os.open(panel.current_dir, os.O_RDONLY, 0)
-	defer os.close(handle)
-
-	if error != nil {
-		_last_error = error
-	}
-
-	files, err := os.read_dir(handle, 1024, context.temp_allocator)
-	if err != 0 {
-		_last_error = err
-	}
+	files, err := fs.get_files_in_directory(panel.current_dir, context.temp_allocator)
 
 	reset_file_panel_memory(panel)
 

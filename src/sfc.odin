@@ -6,6 +6,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:sys/posix"
+import fs "filesystem"
 
 //TODO: Move all of this to a local variable (and pass them to every proc that's now using them directly)
 _application_name := "Simple File Commander" //Application name for displaying in GUI
@@ -18,9 +19,6 @@ _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
 _current_dialog: Widget //currently displayed dialog widget (if any)
-
-_last_error: os.Error = nil
-_debug_message: string = {}
 
 main :: proc() {
 	_pid = posix.getpid()
@@ -162,18 +160,6 @@ wait_for_interesting_event :: proc() -> (t.Input, bool) {
 	return input, screen_size_changed
 }
 
-set_debug_message :: proc(text: string) {
-
-	if _debug_message != {} {
-		delete(_debug_message)
-		_debug_message = {}
-	}
-
-	if text != {} {
-		_debug_message = strings.clone(text)
-	}
-}
-
 /*
 	Shows welcome message if settings allow it and there are no other dialogs
 */
@@ -189,5 +175,29 @@ try_show_welcome_message :: proc() {
 		strings.write_rune(&sb, '\n')
 		_current_dialog = create_messagebox(strings.to_string(sb), title)
 	}
+}
+
+
+/*
+	Called when debug command is executed
+*/
+debug :: proc() {
+	error := fs.copy_file_to_directory("/home/dbrckovi/test/", "/home/dbrckovi/test/")
+	if error != nil {
+		show_error_message(error)
+	}
+}
+
+//TODO: redirect to more descriptive error type (when developed)
+show_error_message :: proc(error: os.Error) {
+	assert(error != nil)
+
+	if _current_dialog != nil {
+		destroy_current_dialog()
+	}
+
+	msg := fmt.tprint(error)
+
+	_current_dialog = create_messagebox(msg, "Error")
 }
 

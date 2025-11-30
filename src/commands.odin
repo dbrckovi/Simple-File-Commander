@@ -114,7 +114,7 @@ cd_up :: proc(panel: ^FilePanel) {
 	}
 
 	if error != os.General_Error.None {
-		_last_error = error
+		show_error_message(error)
 	}
 
 }

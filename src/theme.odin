@@ -12,7 +12,6 @@ Theme :: struct {
 	focused_panel:          RgbPair,
 	focused_file_row:       RgbPair,
 	error_message:          RgbPair,
-	debug_message:          RgbPair,
 	panel_title:            RgbPair,
 	directory_normal:       RgbPair,
 	directory_hidden:       RgbPair,
@@ -74,9 +73,6 @@ init_theme :: proc(theme: ^Theme) {
 
 	theme.error_message.fg = hex_to_rgb("#FF6622")
 	theme.error_message.use_fg = true
-
-	theme.debug_message.fg = hex_to_rgb("#44FF22")
-	theme.debug_message.use_fg = true
 
 	theme.file_normal.fg = hex_to_rgb("#CCCCCC")
 	theme.file_normal.use_fg = true

@@ -5,6 +5,7 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
 
 
 # Important TODO:
+//TODO: continue here
 
  - [ ] Navigating to /home/lost+found returns EBADF error
  - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings

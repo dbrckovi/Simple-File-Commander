@@ -124,6 +124,9 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 			destroy_current_dialog()
 			_current_dialog = create_text_viewer("TODO: draw help", "Help")
 
+		} else if strings.equal_fold(cmd.command, "debug") {
+			debug()
+
 
 		} else {
 			set_command_bar_error(bar, "Invalid command")
