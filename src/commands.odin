@@ -1,8 +1,10 @@
 package sfc
 
+import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
+import err "errors"
 
 //TODO: move logic for parsing and executing ':' commands here
 
@@ -99,22 +101,23 @@ cd_up :: proc(panel: ^FilePanel) {
 	came_from_dir := strings.clone(panel.current_dir, context.temp_allocator)
 	error := cd(panel, parent_dir)
 
-	//focus directory from which we came
-	loop: for file, index in panel.files {
-		if strings.compare(file.file.fullpath, came_from_dir) == 0 {
-			if index <= max_visible_index {
-				panel.focused_row_index = index
-			} else {
-				panel.focused_row_index = max_visible_index
-				panel.first_file_index = index - max_visible_files + 1
-			}
-
-			break loop
-		}
-	}
-
 	if error != os.General_Error.None {
-		show_error_message(error)
+		message := fmt.tprint("Error changing directory", error)
+		show_error_message(err.create_exception(.os_error, message))
+	} else {
+		//focus directory from which we came
+		loop: for file, index in panel.files {
+			if strings.compare(file.file.fullpath, came_from_dir) == 0 {
+				if index <= max_visible_index {
+					panel.focused_row_index = index
+				} else {
+					panel.focused_row_index = max_visible_index
+					panel.first_file_index = index - max_visible_files + 1
+				}
+
+				break loop
+			}
+		}
 	}
 
 }

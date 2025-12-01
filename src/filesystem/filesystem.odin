@@ -1,6 +1,8 @@
 package filesystem
 
 import err "../errors"
+import "core:fmt"
+import "core:strings"
 
 /*
 	"Low level" procedures for file operations.
@@ -13,22 +15,37 @@ import "core:os"
 copy_file_to_directory :: proc(
 	src_file, dest_dir: string,
 	overwrite := false,
-) -> err.FileSystemError {
+) -> err.SfcException {
 
-	assert(len(src_file) > 0)
-	assert(len(dest_dir) > 0)
+	if len(src_file) == 0 {
+		return err.create_exception(.undefined, "'src_file' is not defined")
+	}
+
+	if len(dest_dir) == 0 {
+		return err.create_exception(.undefined, "'dest_dir' is not defined")
+	}
 
 	if !os.exists(src_file) {
-		return .does_not_exist
+		return err.create_exception(.does_not_exist, fmt.tprintf(" '%v' does not exist", src_file))
+	}
+
+	if !os.exists(dest_dir) {
+		return err.create_exception(.does_not_exist, fmt.tprintf(" '%v' does not exist", dest_dir))
 	}
 
 	if !os.is_file(src_file, false) {
-		return .not_a_file
+		return err.create_exception(.not_a_file, fmt.tprintf(" '%v' is not a file", src_file))
 	}
 
-	//TODO: continue here
+	if !os.is_dir(dest_dir) {
+		return err.create_exception(
+			.not_a_directory,
+			fmt.tprintf(" '%v' is not a directory", src_file),
+		)
+	}
 
-	return nil
+
+	return {}
 }
 
 /*

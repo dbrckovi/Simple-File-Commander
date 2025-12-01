@@ -1,12 +1,25 @@
 # Simple-File-Commander
-Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and Helix editor motions. 
 
-!!!Barely started development!!!
+Two-panel TUI file manager inspired by Norton/Total/Midnight/Double Commander, but with completely rebindable keys and some "modal" aspects.
+
+All existing two-panel managers that I tried use arrow keys for navigation.
+Typing single letters, either types to a command bar or filters the view.
+In short, it's impossible to use keys other than arrows for navigation.
+This is annoying when switching from modal text editor to file manager because it forces you to move your hand to arrow keys.
+
+Idea of Simple File Commander is to allow all functions to be bound to single key, or simple combinations with modifiers.
+More complex actions can be performed by typing commands in command bar (invokable by single key), or by following keyboard-navigable dialogs.
 
 
-# Important TODO:
-//TODO: continue here
+I barely started development and I have no idea where this will end.
+This is a personal project I use to learn Odin and "low-level" systems programming.
 
+# Screenshot
+
+![Screenshot goes here](Screenshot.png)
+
+# Reminder TODO:
+ - [ ] Use File_Info in filesystem
  - [ ] Navigating to /home/lost+found returns EBADF error
  - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings
  - [ ] CommandBar.builder is convoluted. read TODO
@@ -59,7 +72,3 @@ Orthodox TUI file manager inspired by Norton/Total/Midnight/Double Commander and
  - Make drawing procedures consistent
     - some take temp_clor, some don't
     - some take colors, some don't
-
-# Screenshot
-
-![Screenshot goes here](Screenshot.png)

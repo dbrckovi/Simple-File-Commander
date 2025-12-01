@@ -6,6 +6,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:sys/posix"
+import err "errors"
 import fs "filesystem"
 
 //TODO: Move all of this to a local variable (and pass them to every proc that's now using them directly)
@@ -182,22 +183,22 @@ try_show_welcome_message :: proc() {
 	Called when debug command is executed
 */
 debug :: proc() {
-	error := fs.copy_file_to_directory("/home/dbrckovi/test/", "/home/dbrckovi/test/")
-	if error != nil {
+	destroy_current_dialog()
+	error := fs.copy_file_to_directory("/home/dbrckovi/test/a.txt", "/home/dbrckovi/test")
+	if error != {} {
 		show_error_message(error)
 	}
 }
 
 //TODO: redirect to more descriptive error type (when developed)
-show_error_message :: proc(error: os.Error) {
-	assert(error != nil)
+show_error_message :: proc(error: err.SfcException) {
+	assert(error != {})
 
 	if _current_dialog != nil {
 		destroy_current_dialog()
 	}
 
-	msg := fmt.tprint(error)
-
+	msg := fmt.tprint(error.message, "\n\n", "ERROR:", error.error)
 	_current_dialog = create_messagebox(msg, "Error")
 }
 
