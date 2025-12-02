@@ -19,7 +19,6 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 ![Screenshot goes here](Screenshot.png)
 
 # Reminder TODO:
- - [ ] Use File_Info in filesystem
  - [ ] Navigating to /home/lost+found returns EBADF error
  - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings
  - [ ] CommandBar.builder is convoluted. read TODO

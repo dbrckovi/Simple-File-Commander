@@ -518,3 +518,23 @@ toggle_show_hidden_files :: proc() {
 	_right_panel.focused_row_index = 0
 }
 
+/*
+	Copies currently selected items from foucsed panel to other panel's directory
+	If nothing is selected a focused item is taken if possible
+*/
+perform_copy :: proc() {
+	dest_panel := &_left_panel == _focused_panel ? _right_panel : _left_panel
+
+	for file in _focused_panel.files {
+		if file.selected && !file.file.is_dir {
+			err := fs.copy_file_to_directory(file.file, dest_panel.current_dir)
+			if err != {} {
+				show_error_message(err)
+			}
+		}
+	}
+
+	reload_file_panel(&_left_panel)
+	reload_file_panel(&_right_panel)
+}
+

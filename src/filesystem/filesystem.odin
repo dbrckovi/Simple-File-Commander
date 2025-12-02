@@ -13,28 +13,21 @@ import "core:strings"
 import "core:os"
 
 copy_file_to_directory :: proc(
-	src_file, dest_dir: string,
+	src_file: os.File_Info,
+	dest_dir: string,
 	overwrite := false,
 ) -> err.SfcException {
 
-	if len(src_file) == 0 {
-		return err.create_exception(.undefined, "'src_file' is not defined")
-	}
-
 	if len(dest_dir) == 0 {
-		return err.create_exception(.undefined, "'dest_dir' is not defined")
-	}
-
-	if !os.exists(src_file) {
-		return err.create_exception(.does_not_exist, fmt.tprintf(" '%v' does not exist", src_file))
+		return err.create_exception(
+			.undefined,
+			"'dest_dir' is not defined",
+			context.temp_allocator,
+		)
 	}
 
 	if !os.exists(dest_dir) {
 		return err.create_exception(.does_not_exist, fmt.tprintf(" '%v' does not exist", dest_dir))
-	}
-
-	if !os.is_file(src_file, false) {
-		return err.create_exception(.not_a_file, fmt.tprintf(" '%v' is not a file", src_file))
 	}
 
 	if !os.is_dir(dest_dir) {
@@ -44,9 +37,23 @@ copy_file_to_directory :: proc(
 		)
 	}
 
+	dest_file_builder := strings.builder_make(context.temp_allocator)
+	//TODO: dest_file := filepath.join({dest_dir, src_file.name}, context.temp_allocator)
+	strings.write_string(&dest_file_builder, dest_dir)
+	if !strings.ends_with(dest_dir, "/") {
+		strings.write_string(&dest_file_builder, "/")
+	}
+	strings.write_string(&dest_file_builder, src_file.name)
+
+	return copy_file_to_file(src_file.fullpath, strings.to_string(dest_file_builder))
+}
+
+copy_file_to_file :: proc(src_file, dest_file: string, overwrite := false) -> err.SfcException {
 
 	return {}
+
 }
+
 
 /*
 	Gets an array of os.File_Info objects in specified directory.

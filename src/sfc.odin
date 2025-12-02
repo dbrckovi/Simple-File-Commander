@@ -130,6 +130,9 @@ handle_input_main :: proc(input: t.Input) {
 				panic("Another dialog is already open")
 			}
 		}
+		if i.key == .F5 {
+			perform_copy()
+		}
 
 	case t.Mouse_Input:
 	//todo: handle mouse
@@ -178,16 +181,12 @@ try_show_welcome_message :: proc() {
 	}
 }
 
-
 /*
 	Called when debug command is executed
 */
 debug :: proc() {
 	destroy_current_dialog()
-	error := fs.copy_file_to_directory("/home/dbrckovi/test/a.txt", "/home/dbrckovi/test")
-	if error != {} {
-		show_error_message(error)
-	}
+	_current_dialog = create_messagebox("test", "test")
 }
 
 //TODO: redirect to more descriptive error type (when developed)
