@@ -54,6 +54,7 @@ perform_text_viewer_layout :: proc(box: ^TextViewer) {
 draw_text_viewer :: proc(box: ^TextViewer) {
 	draw_box_with_title(&box.panel)
 
+	//TODO: draw the text
 	// rect := box.panel.rectangle
 	// rect = {rect.x + 1, rect.y + 1, rect.w - 2, rect.h - 2}
 

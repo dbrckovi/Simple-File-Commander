@@ -113,27 +113,9 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .Semicolon do deselect_all()
 		if i.key == .Percent do select_all()
 		if i.key == .Period do toggle_show_hidden_files()
-		if i.key == .Space {
-			if _current_dialog == nil {
-				_current_dialog = create_messagebox(
-					"message text content.\nDruga linija\nTreča a ova je ogromna s brdom smeća jer mi treba za test",
-					"msgtitle",
-				)
-			} else {
-				panic("Another dialog is already open")
-			}
-		}
-		if i.key == .Colon {
-			if _current_dialog == nil {
-				_current_dialog = create_command_bar()
-			} else {
-				panic("Another dialog is already open")
-			}
-		}
-		if i.key == .F5 {
-			perform_copy()
-		}
-
+		if i.key == .F5 do perform_copy()
+		if i.key == .F8 do perform_delete()
+		if i.key == .Colon do goto_command_mode()
 	case t.Mouse_Input:
 	//todo: handle mouse
 	}

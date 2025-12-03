@@ -29,6 +29,8 @@ FileSystemError :: enum {
 	does_not_exist,
 	not_a_file,
 	not_a_directory,
+	destination_same_as_source,
+	overwrite_not_requrested, //when file would be overwritten but overwrite flag is not set
 	os_error,
 }
 

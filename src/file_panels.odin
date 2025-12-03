@@ -525,6 +525,8 @@ toggle_show_hidden_files :: proc() {
 perform_copy :: proc() {
 	dest_panel := &_left_panel == _focused_panel ? _right_panel : _left_panel
 
+	//TODO: rewrite this because now it only copies files, and doesn't fall back to focused file if nothing is selected
+
 	for file in _focused_panel.files {
 		if file.selected && !file.file.is_dir {
 			err := fs.copy_file_to_directory(file.file, dest_panel.current_dir)
@@ -536,5 +538,35 @@ perform_copy :: proc() {
 
 	reload_file_panel(&_left_panel)
 	reload_file_panel(&_right_panel)
+}
+
+/*
+	Deletes currently selected items in foucsed panel 
+	If nothing is selected a focused item is taken if possible
+*/
+perform_delete :: proc() {
+	dest_panel := &_left_panel == _focused_panel ? _right_panel : _left_panel
+
+	//TODO: rewrite this because now it only copies files, and doesn't fall back to focused file if nothing is selected
+
+	for file in _focused_panel.files {
+		if file.selected && !file.file.is_dir {
+			err := fs.delete_file(file.file)
+			if err != {} {
+				show_error_message(err)
+			}
+		}
+	}
+
+	reload_file_panel(&_left_panel)
+	reload_file_panel(&_right_panel)
+}
+
+/*
+	Sets command bar as current dialog
+*/
+goto_command_mode :: proc() {
+	assert(_current_dialog == nil)
+	_current_dialog = create_command_bar()
 }
 
