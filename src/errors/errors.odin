@@ -36,8 +36,8 @@ FileSystemError :: enum {
 
 GeneralError :: enum {
 	undefined,
+	thread_not_created,
 }
-
 
 create_exception :: proc(
 	error: SfcError,
