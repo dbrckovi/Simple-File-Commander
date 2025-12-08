@@ -518,6 +518,14 @@ toggle_show_hidden_files :: proc() {
 	_right_panel.focused_row_index = 0
 }
 
+init_copy_process :: proc() {
+	source_panel := _focused_panel
+	dest_panel := _focused_panel == &_left_panel ? &_right_panel : &_left_panel
+
+
+}
+
+
 /*
 	Copies currently selected items from foucsed panel to other panel's directory
 	If nothing is selected a focused item is taken if possible
