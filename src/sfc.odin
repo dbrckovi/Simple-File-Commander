@@ -74,6 +74,7 @@ update :: proc() {
 			if is_keyboard {
 				if i.key == .Escape {
 					destroy_current_dialog()
+					return
 				}
 			}
 
@@ -113,7 +114,7 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .Semicolon do deselect_all()
 		if i.key == .Percent do select_all()
 		if i.key == .Period do toggle_show_hidden_files()
-		if i.key == .F5 do perform_copy()
+		if i.key == .F5 do init_copy_process()
 		if i.key == .F8 do perform_delete()
 		if i.key == .Colon do goto_command_mode()
 	case t.Mouse_Input:

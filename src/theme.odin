@@ -26,6 +26,8 @@ Theme :: struct {
 	attribute_other:        RgbPair,
 	dialog_main:            RgbPair,
 	dialog_title:           RgbPair,
+	dialog_key:             RgbPair,
+	dialog_value:           RgbPair,
 }
 
 /*
@@ -108,6 +110,11 @@ init_theme :: proc(theme: ^Theme) {
 	theme.dialog_title.bg = hex_to_rgb("#662255")
 	theme.dialog_title.use_bg = true
 
+	theme.dialog_key.fg = hex_to_rgb("#FFFFFF")
+	theme.dialog_key.use_fg = true
+
+	theme.dialog_value.fg = hex_to_rgb("#AAAAFF")
+	theme.dialog_value.use_fg = true
 }
 
 /*

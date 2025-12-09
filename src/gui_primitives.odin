@@ -24,3 +24,29 @@ draw_box_with_title :: proc(panel: ^BoxWithTitle) {
 	}
 }
 
+draw_key_with_function :: proc(
+	location: [2]uint,
+	key: string,
+	function: string,
+	function_distance: uint,
+) {
+	set_color_pair(_current_theme.dialog_key)
+	write(key, location)
+
+	set_color_pair(_current_theme.dialog_main)
+	write(function, {location.x + function_distance, location.y})
+}
+
+draw_label_with_value :: proc(
+	location: [2]uint,
+	label: string,
+	value: string,
+	value_distance: uint,
+) {
+	set_color_pair(_current_theme.dialog_main)
+	write(label, location)
+
+	set_color_pair(_current_theme.dialog_value)
+	write(value, {location.x + value_distance, location.y})
+}
+

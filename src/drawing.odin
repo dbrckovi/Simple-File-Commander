@@ -622,6 +622,8 @@ draw_widget :: proc(widget: ^Widget) {
 		draw_messagebox(&w)
 	case TextViewer:
 		draw_text_viewer(&w)
+	case FileCopyBox:
+		draw_file_copy_box(&w)
 	}
 }
 

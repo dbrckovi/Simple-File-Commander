@@ -522,7 +522,13 @@ init_copy_process :: proc() {
 	source_panel := _focused_panel
 	dest_panel := _focused_panel == &_left_panel ? &_right_panel : &_left_panel
 
+	//TODO: count selected files
 
+	_current_dialog = create_file_copy_box(
+		&source_panel.files,
+		dest_panel.current_dir,
+		context.allocator,
+	)
 }
 
 
@@ -533,7 +539,7 @@ init_copy_process :: proc() {
 perform_copy :: proc() {
 	dest_panel := &_left_panel == _focused_panel ? _right_panel : _left_panel
 
-	//TODO: rewrite this because now it only copies files, and doesn't fall back to focused file if nothing is selected
+	//TODO: This is useless because there is a threaded version
 
 	for file in _focused_panel.files {
 		if file.selected && !file.file.is_dir {

@@ -163,3 +163,26 @@ get_next_line_for_wrap :: proc(
 	return new_start, new_end
 }
 
+/*
+	Toggles between possible nullable bool values
+	@param value: pointer to value which will be toggled
+	@param allow_nil: specifies whether this proc can set the nil value
+					  If 'allow_nil' is false, value will be set back to 'true' after 'false'
+*/
+toggle_maybe_bool :: proc(value: ^Maybe(bool), allow_nil: bool = false) {
+	old_value, ok := value^.?
+
+	if ok {
+		if old_value == true {
+			value^ = false
+		} else if allow_nil {
+			value^ = nil
+		} else {
+			value^ = true
+		}
+	} else {
+		//value was nil
+		value^ = true
+	}
+}
+

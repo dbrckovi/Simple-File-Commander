@@ -6,6 +6,7 @@ Widget :: union {
 	MessageBox,
 	CommandBar,
 	TextViewer,
+	FileCopyBox,
 }
 
 /*
@@ -30,11 +31,10 @@ handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 
 	#partial switch &w in widget {
 	case CommandBar:
-		{
-			handle_input_command_bar(&w, input)
-		}
+		handle_input_command_bar(&w, input)
+	case FileCopyBox:
+		handle_input_file_copy_box(&w, input)
 	}
-
 }
 
 handle_layout_change :: proc(w: ^Widget) {
@@ -45,6 +45,8 @@ handle_layout_change :: proc(w: ^Widget) {
 		break
 	case TextViewer:
 		perform_text_viewer_layout(&w)
+	case FileCopyBox:
+		perform_file_copy_box_layout(&w)
 	}
 }
 
@@ -65,6 +67,8 @@ destroy_current_dialog :: proc() {
 		destroy_command_bar(&w)
 	case TextViewer:
 		destroy_text_viewer(&w)
+	case FileCopyBox:
+		destroy_file_copy_box(&w)
 	}
 
 	_current_dialog = nil
