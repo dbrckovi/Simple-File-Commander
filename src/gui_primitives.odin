@@ -50,3 +50,54 @@ draw_label_with_value :: proc(
 	write(value, {location.x + value_distance, location.y})
 }
 
+/*
+	Horizontal progress bar
+	@param location: leftmost coordinate
+	@param width: width of the progress bar
+	@param progress_value: normalized value of the progress bar (clipped to 0-1)
+*/
+draw_progress_bar_h :: proc(location: [2]uint, width: uint, progress_value: f32) {
+	value := progress_value
+	if value < 0 do value = 0
+	else if value > 1 do value = 1
+
+	abs_value := uint(f32(width) * value)
+
+	if abs_value > 0 {
+		rect: Rectangle = {int(location.x), int(location.y), int(abs_value), 1}
+		paint_rectangle(rect, _current_theme.dialog_progress.fg)
+	}
+	if abs_value < width {
+		rect: Rectangle = {int(location.x + abs_value), int(location.y), int(width - abs_value), 1}
+		paint_rectangle(rect, _current_theme.dialog_progress.bg)
+	}
+}
+
+/*
+	Vertical progress bar
+	@param location: topmost coordinate
+	@param height: height of the progress bar
+	@param progress_value: normalized value of the progress bar (clipped to 0-1)
+*/
+draw_progress_bar_v :: proc(location: [2]uint, height: uint, progress_value: f32) {
+	value := progress_value
+	if value < 0 do value = 0
+	else if value > 1 do value = 1
+
+	abs_value := uint(f32(height) * value)
+
+	if abs_value < height {
+		rect: Rectangle = {int(location.x), int(location.y), 1, int(height - abs_value)}
+		paint_rectangle(rect, _current_theme.dialog_progress.bg)
+	}
+	if abs_value > 0 {
+		rect: Rectangle = {
+			int(location.x),
+			int(location.y + height - abs_value),
+			1,
+			int(abs_value),
+		}
+		paint_rectangle(rect, _current_theme.dialog_progress.fg)
+	}
+}
+

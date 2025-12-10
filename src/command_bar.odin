@@ -20,7 +20,7 @@ create_command_bar :: proc(allocator := context.allocator) -> CommandBar {
 
 draw_command_bar :: proc(bar: ^CommandBar) {
 	y := int(_screen.size.h - 1)
-	rect: Rectangle = {0, y, int(_screen.size.w), y}
+	rect: Rectangle = {0, y, int(_screen.size.w), 1}
 
 	paint_rectangle(rect, _current_theme.dialog_main.bg)
 

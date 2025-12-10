@@ -20,6 +20,7 @@ FileCopySettings :: struct {
 	overwrite_files:   Maybe(bool), //nil -> ask user
 	overwrite_dirs:    Maybe(bool), //nil -> ask user
 	continue_on_error: Maybe(bool), //nil -> ask user
+	copy_hidden:       Maybe(bool), //nil -> ask user
 }
 
 // TODO: put somewhere more general

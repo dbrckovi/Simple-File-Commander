@@ -28,6 +28,7 @@ Theme :: struct {
 	dialog_title:           RgbPair,
 	dialog_key:             RgbPair,
 	dialog_value:           RgbPair,
+	dialog_progress:        RgbPair,
 }
 
 /*
@@ -115,6 +116,12 @@ init_theme :: proc(theme: ^Theme) {
 
 	theme.dialog_value.fg = hex_to_rgb("#AAAAFF")
 	theme.dialog_value.use_fg = true
+
+	theme.dialog_progress.fg = hex_to_rgb("#AAAAFF")
+	theme.dialog_progress.use_fg = true
+	theme.dialog_progress.bg = hex_to_rgb("#9966BB")
+	theme.dialog_progress.use_bg = true
+
 }
 
 /*
