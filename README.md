@@ -10,7 +10,6 @@ This is annoying when switching from modal text editor to file manager because i
 Idea of Simple File Commander is to allow all functions to be bound to single key, or simple combinations with modifiers.
 More complex actions can be performed by typing commands in command bar (invokable by single key), or by following keyboard-navigable dialogs.
 
-
 I barely started development and I have no idea where this will end.
 This is a personal project I use to learn Odin and "low-level" systems programming.
 
@@ -19,6 +18,9 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 ![Screenshot goes here](Screenshot.png)
 
 # Reminder TODO:
+
+ - [ ] Keep it !!! SIMPLE !!!
+
  - [ ] Navigating to /home/lost+found returns EBADF error
  - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings
  - [ ] CommandBar.builder is convoluted. read TODO
