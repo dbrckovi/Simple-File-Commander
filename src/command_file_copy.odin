@@ -6,7 +6,7 @@ import "core:time"
 import "errors"
 
 FileCopyToken :: struct {
-	run:               bool, //caller thread sets this to false to cancel the thread
+	cancel_requested:  bool, //caller thread sets this to false to cancel the thread
 	thread:            ^thread.Thread,
 	request:           i32, //TODO: type
 	response:          i32, //TODO: type
@@ -17,17 +17,15 @@ FileCopyToken :: struct {
 }
 
 FileCopySettings :: struct {
-	overwrite_files:   Maybe(bool), //nil -> ask user
-	overwrite_dirs:    Maybe(bool), //nil -> ask user
-	continue_on_error: Maybe(bool), //nil -> ask user
-	copy_hidden:       Maybe(bool), //nil -> ask user
+	overwrite_files: Maybe(bool), //nil -> ask user
 }
 
 // TODO: put somewhere more general
 ProgressInfo :: struct {
-	total_count:      i32,
-	finished_percent: f32,
-	finished_count:   i32,
+	total_count:    i64, //total number of items
+	total_size:     i64, //total size of items in bytes
+	finished_count: i64, //number of finished items
+	finished_size:  i64, //sum sizes of finished bytes
 }
 
 start_file_copy_thread :: proc(
@@ -38,7 +36,6 @@ start_file_copy_thread :: proc(
 	errors.SfcException,
 ) {
 	token: ^FileCopyToken = new(FileCopyToken)
-	token.run = true
 	token.source_file_infos = source_file_infos
 	token.destination = destination
 	token.thread = thread.create(file_copy_work)
@@ -59,7 +56,7 @@ start_file_copy_thread :: proc(
 }
 
 stop_and_destroy_file_copy_thread :: proc(token: ^FileCopyToken) {
-	sync.atomic_store(&token.run, false)
+	sync.atomic_store(&token.cancel_requested, true)
 	thread.join(token.thread)
 	thread.destroy(token.thread)
 }
@@ -67,7 +64,7 @@ stop_and_destroy_file_copy_thread :: proc(token: ^FileCopyToken) {
 file_copy_work :: proc(t: ^thread.Thread) {
 	token := (^FileCopyToken)(t.data)
 
-	for sync.atomic_load(&token.run) {
+	for {
 		//TODO: do
 		sync.atomic_add(&token.finished_count, 1)
 		time.sleep(time.Millisecond)

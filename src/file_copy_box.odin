@@ -2,26 +2,51 @@ package sfc
 
 import t "../lib/TermCL"
 import "core:fmt"
+import "core:os"
 import "core:strings"
+import "core:sync"
+import "errors"
+import fs "filesystem"
 
 FileCopyBox :: struct {
 	panel:      BoxWithTitle,
-	started:    bool, //specifis whether the copy operation has started
+	started:    bool, //specifies whether the copy operation has started (TODO: maybe merge with copy_token.run?)
 	copy_token: FileCopyToken, //struct for communication with the copy thread
 }
 
 create_file_copy_box :: proc(
-	source_files: ^[dynamic]SfcFileInfo, //array of items which were selected in the source panel. Set by caller thread
+	source_files: [dynamic]SfcFileInfo, //array of items which were selected in the source panel.
 	destination: string, //destination directory. Set by caller thread
 	allocator := context.allocator,
-) -> FileCopyBox {
+) -> (
+	FileCopyBox,
+	errors.SfcException,
+) {
 	box: FileCopyBox
 	box.panel.title = strings.clone("Preparing to copy", allocator)
 	box.panel.border = .double
 
+	using box.copy_token.progress
+	//TODO: this doesn't make much sense here because options are modified later in GUI
+	for info in source_files {
+		if info.file.is_dir {
+			count, size, count_error := fs.count_files(info.file.fullpath, true)
+			if count_error != {} {
+				return {}, count_error
+			}
+			total_count += count
+			total_size += size
+		} else {
+			total_count += 1
+			total_size += info.file.size
+		}
+	}
+
 	perform_file_copy_box_layout(&box)
 
-	return box
+	//TODO: source_files must be deleted probably even before the main copy thread starts
+
+	return box, {}
 }
 
 destroy_file_copy_box :: proc(box: ^FileCopyBox) {
@@ -39,22 +64,16 @@ perform_file_copy_box_layout :: proc(box: ^FileCopyBox) {
 }
 
 handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
+	if box.started do return
+
 	switch i in input {
 	case t.Keyboard_Input:
 		if i.key == .F {
 			toggle_maybe_bool(&box.copy_token.overwrite_files)
 		}
-		if i.key == .D {
-			toggle_maybe_bool(&box.copy_token.overwrite_dirs)
+		if i.key == .Enter {
+			panic("Not implemented")
 		}
-		if i.key == .C {
-			toggle_maybe_bool(&box.copy_token.continue_on_error)
-		}
-		if i.key == .H {
-			toggle_maybe_bool(&box.copy_token.copy_hidden)
-		}
-
-	//TODO: Enter starts the thread
 	case t.Mouse_Input:
 	}
 }
@@ -65,15 +84,15 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 	left := uint(box.panel.rectangle.x + 2)
 	top := uint(box.panel.rectangle.y + 1)
 
-	draw_label_with_value({left + 6, top}, "Files:", "122", 14)
-	draw_label_with_value({left + 6, top + 1}, "Directories:", "13", 14)
-	draw_label_with_value({left + 6, top + 2}, "Total size:", "14.6 Mb", 14)
+	str_file_count := fmt.tprint(sync.atomic_load(&box.copy_token.total_count))
+	files_size := sync.atomic_load(&box.copy_token.total_size)
+	str_total_size := get_bytes_with_units(files_size)
+
+	draw_label_with_value({left + 6, top}, "Files:", str_file_count, 14)
+	draw_label_with_value({left + 6, top + 2}, "Total size:", str_total_size, 14)
 
 	using box.copy_token
 	draw_file_copy_check_box({left, top + 4}, "f", "Overwrite files", overwrite_files)
-	draw_file_copy_check_box({left, top + 5}, "d", "Overwrite directories", overwrite_dirs)
-	draw_file_copy_check_box({left, top + 6}, "c", "Continue on error", continue_on_error)
-	draw_file_copy_check_box({left, top + 7}, "h", "Copy hidden items", copy_hidden)
 
 	draw_key_with_function({left, top + 9}, "Enter", "Start", 10)
 	draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)

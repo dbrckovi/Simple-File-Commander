@@ -172,17 +172,62 @@ get_files_in_directory :: proc(
 	allocator := context.allocator,
 ) -> (
 	fi: []os.File_Info,
-	err: os.Error,
+	exception: err.SfcException,
 ) {
 	assert(len(path) > 0)
 
-	handle, error := os.open(path, os.O_RDONLY, 0)
+	handle, open_error := os.open(path, os.O_RDONLY, 0)
 	defer os.close(handle)
 
-	if error != nil {
-		return nil, error
+	if open_error != nil {
+		msg := fmt.tprint("Error opening", path, " -> ", open_error)
+		return nil, err.create_exception(.os_error, msg)
 	}
 
-	return os.read_dir(handle, 1024, allocator)
+	items, read_error := os.read_dir(handle, 1024, allocator)
+
+	if read_error != nil {
+		msg := fmt.tprint("Error reading", path, " -> ", read_error)
+		return nil, err.create_exception(.os_error, msg)
+	}
+
+	return items, {}
+}
+
+/*
+	Counts files and sums their sizes in a given directory.
+	@param directory: directory which contains the files
+	@param recursive: if true, all child directories will be counted as well
+*/
+count_files :: proc(
+	directory: string,
+	recursive: bool = true,
+) -> (
+	count: i64,
+	size: i64,
+	error: err.SfcException,
+) {
+	files, get_files_error := get_files_in_directory(directory)
+	defer delete(files)
+
+	if get_files_error != {} {
+		return count, size, get_files_error
+	}
+
+	for f in files {
+		if f.is_dir && recursive {
+			dir_count, dir_size, dir_error := count_files(f.fullpath, recursive)
+			if dir_error != {} {
+				return count, size, dir_error
+			}
+			count += dir_count
+			size += dir_size
+		} else if !f.is_dir {
+			count += 1
+			size += f.size
+		}
+	}
+
+	return count, size, {}
 }
 

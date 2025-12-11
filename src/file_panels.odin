@@ -8,6 +8,7 @@ import "core:path/filepath"
 import "core:sort"
 import "core:strings"
 import "core:time"
+import "errors"
 import fs "filesystem"
 
 FilePanel :: struct {
@@ -100,6 +101,8 @@ reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
 	}
 
 	files, err := fs.get_files_in_directory(panel.current_dir, context.temp_allocator)
+	//TOOD: this error is not handled
+
 
 	reset_file_panel_memory(panel)
 
@@ -123,15 +126,7 @@ reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
 			continue FILE_LOOP
 		}
 
-		file_info_copy: os.File_Info = f
-		file_info_copy.name = strings.clone(f.name, panel.allocator)
-		if strings.starts_with(f.fullpath, "//") {
-			//workaround for what seems to be a bug in os package. For some reason it returns double // in root directory.
-			// TODO: investigate or report
-			file_info_copy.fullpath = strings.clone(f.fullpath[1:], panel.allocator)
-		} else {
-			file_info_copy.fullpath = strings.clone(f.fullpath, panel.allocator)
-		}
+		file_info_copy := copy_file_info(f, panel.allocator)
 
 		newItem: SfcFileInfo = {
 			selected = preserve_selection && contains(&previous_selection, file_info_copy.name),
@@ -440,28 +435,6 @@ is_link :: proc(info: ^SfcFileInfo) -> bool {
 }
 
 /*
-	Returns file's size as string
-*/
-get_file_size_string :: proc(info: os.File_Info) -> string {
-	units: [8]rune = {'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'}
-
-	if info.size < 1024 {
-		return fmt.tprintf("%d B", info.size)
-	} else {
-		size := f32(info.size)
-
-		for unit in units {
-			size = size / 1024
-			if size < 1024 {
-				return fmt.tprintf("%.1f %v", size, unit)
-			}
-		}
-	}
-
-	return strings.clone("----")
-}
-
-/*
 	Returns file's modification or creation date as string
 */
 get_file_date_string :: proc(info: os.File_Info) -> string {
@@ -521,14 +494,35 @@ toggle_show_hidden_files :: proc() {
 init_copy_process :: proc() {
 	source_panel := _focused_panel
 	dest_panel := _focused_panel == &_left_panel ? &_right_panel : &_left_panel
+	selected_files := make([dynamic]SfcFileInfo, context.allocator)
 
-	//TODO: count selected files
+	for file in source_panel.files {
+		if file.selected {
+			append(&selected_files, file)
+		}
+	}
 
-	_current_dialog = create_file_copy_box(
-		&source_panel.files,
-		dest_panel.current_dir,
-		context.allocator,
-	)
+	if len(selected_files) == 0 {
+		focused_file := get_focused_file_info()
+		if focused_file.file.name != ".." {
+			focused_file.selected = true
+			append(&selected_files, focused_file^)
+		}
+	}
+
+	if len(selected_files) > 0 {
+		dlg, err := create_file_copy_box(selected_files, dest_panel.current_dir, context.allocator)
+		if err != {} {
+			show_error_message(err)
+		} else {
+			_current_dialog = dlg
+		}
+	} else {
+		_current_dialog = create_messagebox(
+			"At least one file or directory must be selected or focused.\nParent directory may not be copied from within itself.",
+			"Error",
+		)
+	}
 }
 
 

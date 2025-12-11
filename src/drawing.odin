@@ -274,7 +274,7 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 
 			//Size
 			if size_drawn {
-				size_text := get_file_size_string(file.file)
+				size_text := get_bytes_with_units(file.file.size)
 				size_text_x := size_left_border_x + COL_SIZE_LENGTH - len(size_text) - 1
 				write(size_text, {size_text_x, uint(current_row)})
 			}

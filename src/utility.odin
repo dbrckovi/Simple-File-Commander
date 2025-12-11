@@ -1,5 +1,6 @@
 package sfc
 
+import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:time"
@@ -184,5 +185,47 @@ toggle_maybe_bool :: proc(value: ^Maybe(bool), allow_nil: bool = false) {
 		//value was nil
 		value^ = true
 	}
+}
+
+/*
+	Returns the specified number of bytes as a string with unit designator
+*/
+get_bytes_with_units :: proc(size: i64) -> string {
+	units: [8]rune = {'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'}
+
+	if size < 1024 {
+		return fmt.tprintf("%d B", size)
+	} else {
+		size := f32(size)
+
+		for unit in units {
+			size = size / 1024
+			if size < 1024 {
+				return fmt.tprintf("%.1f %v", size, unit)
+			}
+		}
+	}
+
+	return strings.clone("----")
+}
+
+
+/*
+	Makes a copy of file info, using specified allocator for copying strings
+*/
+copy_file_info :: proc(info: os.File_Info, allocator := context.allocator) -> os.File_Info {
+
+	ret: os.File_Info = info
+	ret.name = strings.clone(info.name, context.allocator)
+
+	if strings.starts_with(info.fullpath, "//") {
+		//workaround for what seems to be a bug in os package. For some reason it returns double // in root directory.
+		// TODO: investigate or report
+		ret.fullpath = strings.clone(info.fullpath[1:], allocator)
+	} else {
+		ret.fullpath = strings.clone(info.fullpath, allocator)
+	}
+
+	return ret
 }
 
