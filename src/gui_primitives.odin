@@ -1,5 +1,7 @@
 package sfc
 
+import "core:strings"
+
 /*
 	Panel with title in the upper left corner and border
 */
@@ -7,6 +9,14 @@ BoxWithTitle :: struct {
 	title:     string,
 	border:    BorderStyle,
 	rectangle: Rectangle,
+}
+
+/*
+	Changes title of existing BoxWithTitle, deleting the old value
+*/
+change_box_with_title_title :: proc(box: ^BoxWithTitle, new_title: string) {
+	if len(box.title) > 0 do delete(box.title)
+	box.title = strings.clone(new_title)
 }
 
 draw_box_with_title :: proc(panel: ^BoxWithTitle) {

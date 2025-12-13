@@ -8,15 +8,24 @@ import "core:sync"
 import "errors"
 import fs "filesystem"
 
+FileCopyBoxState :: enum {
+	preparation = 0, // Allows user to specifiy copy settings or cancel, before copying starts
+	progress    = 1, // Shows copy progress and allows cancellation
+	question    = 2, // When thread needs user's feedback
+}
+
 FileCopyBox :: struct {
 	panel:      BoxWithTitle,
-	started:    bool, //specifies whether the copy operation has started (TODO: maybe merge with copy_token.run?)
+	state:      FileCopyBoxState,
 	copy_token: FileCopyToken, //struct for communication with the copy thread
 }
 
+/*
+	Creates a FileCopyBox and sends it a list of files and some initial values
+*/
 create_file_copy_box :: proc(
 	source_files: [dynamic]SfcFileInfo, //array of items which were selected in the source panel.
-	destination: string, //destination directory. Set by caller thread
+	destination_dir: string, //destination directory. Set by caller thread
 	allocator := context.allocator,
 ) -> (
 	FileCopyBox,
@@ -26,33 +35,34 @@ create_file_copy_box :: proc(
 	box.panel.title = strings.clone("Preparing to copy", allocator)
 	box.panel.border = .double
 
-	using box.copy_token.progress
-	//TODO: this doesn't make much sense here because options are modified later in GUI
-	for info in source_files {
-		if info.file.is_dir {
-			count, size, count_error := fs.count_files(info.file.fullpath, true)
-			if count_error != {} {
-				return {}, count_error
-			}
-			total_count += count
-			total_size += size
-		} else {
-			total_count += 1
-			total_size += info.file.size
-		}
+	file_infos := extract_file_infos(source_files[:], context.temp_allocator)
+	count, size, count_error := fs.count_files_in_array(file_infos[:], true)
+
+	if count_error != {} {
+		return box, count_error
 	}
 
+	using box.copy_token
+	source_file_infos = source_files
+	destination_dir = strings.clone(destination_dir, allocator)
+	total_count = count
+	total_size = size
+
 	perform_file_copy_box_layout(&box)
-
-	//TODO: source_files must be deleted probably even before the main copy thread starts
-
 	return box, {}
 }
 
 destroy_file_copy_box :: proc(box: ^FileCopyBox) {
-	//TODO: this leaks heavily
 	if len(box.panel.title) > 0 {
 		delete(box.panel.title)
+	}
+
+	if len(box.copy_token.source_file_infos) > 0 {
+		delete(box.copy_token.source_file_infos)
+	}
+
+	if len(box.copy_token.destination_dir) > 0 {
+		delete(box.copy_token.destination_dir)
 	}
 }
 
@@ -64,15 +74,17 @@ perform_file_copy_box_layout :: proc(box: ^FileCopyBox) {
 }
 
 handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
-	if box.started do return
-
 	switch i in input {
 	case t.Keyboard_Input:
-		if i.key == .F {
-			toggle_maybe_bool(&box.copy_token.overwrite_files)
-		}
-		if i.key == .Enter {
-			panic("Not implemented")
+		if box.state == .preparation {
+			if i.key == .F {
+				toggle_maybe_bool(&box.copy_token.overwrite_files, true)
+			}
+			if i.key == .Enter {
+				box.state = .progress
+				change_box_with_title_title(&box.panel, "Copying files")
+				// start_file_copy_thread(&box.copy_token)
+			}
 		}
 	case t.Mouse_Input:
 	}
@@ -84,18 +96,30 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 	left := uint(box.panel.rectangle.x + 2)
 	top := uint(box.panel.rectangle.y + 1)
 
-	str_file_count := fmt.tprint(sync.atomic_load(&box.copy_token.total_count))
-	files_size := sync.atomic_load(&box.copy_token.total_size)
-	str_total_size := get_bytes_with_units(files_size)
+	finished_count := sync.atomic_load(&box.copy_token.finished_count)
+	finished_size := sync.atomic_load(&box.copy_token.finished_size)
 
-	draw_label_with_value({left + 6, top}, "Files:", str_file_count, 14)
-	draw_label_with_value({left + 6, top + 2}, "Total size:", str_total_size, 14)
+	str_total_count := fmt.tprint(box.copy_token.total_count)
+	str_total_size := get_bytes_with_units(box.copy_token.total_size)
+	str_finished_count := fmt.tprint(finished_count)
+	str_finished_size := fmt.tprint(finished_size)
 
-	using box.copy_token
-	draw_file_copy_check_box({left, top + 4}, "f", "Overwrite files", overwrite_files)
+	switch box.state {
+	case .progress:
+		draw_label_with_value({left + 6, top + 1}, "Files:", str_total_count, 14)
 
-	draw_key_with_function({left, top + 9}, "Enter", "Start", 10)
-	draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)
+	case .preparation:
+		draw_label_with_value({left + 6, top + 1}, "Files:", str_total_count, 14)
+		draw_label_with_value({left + 6, top + 2}, "Total size:", str_total_size, 14)
+
+		using box.copy_token
+		draw_file_copy_check_box({left, top + 5}, "f", "Overwrite files", overwrite_files)
+
+		draw_key_with_function({left, top + 9}, "Enter", "Start", 10)
+		draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)
+	case .question:
+	//TODO: do
+	}
 }
 
 /*

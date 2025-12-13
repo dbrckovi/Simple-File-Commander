@@ -229,3 +229,17 @@ copy_file_info :: proc(info: os.File_Info, allocator := context.allocator) -> os
 	return ret
 }
 
+/*
+	Extracts underlaying os.File_Infos from []SfcFileInfo
+*/
+extract_file_infos :: proc(
+	sfc_list: []SfcFileInfo,
+	allocator := context.allocator,
+) -> [dynamic]os.File_Info {
+	ret := make([dynamic]os.File_Info, allocator)
+	for sfcItem in sfc_list {
+		append(&ret, sfcItem.file)
+	}
+	return ret
+}
+

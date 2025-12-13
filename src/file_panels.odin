@@ -491,10 +491,21 @@ toggle_show_hidden_files :: proc() {
 	_right_panel.focused_row_index = 0
 }
 
+/*
+	Creates and shows a file copy dialog and gives it selected files and destination directory
+*/
 init_copy_process :: proc() {
 	source_panel := _focused_panel
 	dest_panel := _focused_panel == &_left_panel ? &_right_panel : &_left_panel
-	selected_files := make([dynamic]SfcFileInfo, context.allocator)
+	selected_files := make([dynamic]SfcFileInfo)
+
+	if strings.equal_fold(source_panel.current_dir, dest_panel.current_dir) {
+		_current_dialog = create_messagebox(
+			"Source and destination directories may not be the same",
+			"Error",
+		)
+		return
+	}
 
 	for file in source_panel.files {
 		if file.selected {
@@ -513,6 +524,7 @@ init_copy_process :: proc() {
 	if len(selected_files) > 0 {
 		dlg, err := create_file_copy_box(selected_files, dest_panel.current_dir, context.allocator)
 		if err != {} {
+			destroy_file_copy_box(&dlg)
 			show_error_message(err)
 		} else {
 			_current_dialog = dlg

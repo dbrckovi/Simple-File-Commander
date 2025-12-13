@@ -195,11 +195,11 @@ get_files_in_directory :: proc(
 }
 
 /*
-	Counts files and sums their sizes in a given directory.
+	Counts files in a given directory and sums their sizes
 	@param directory: directory which contains the files
 	@param recursive: if true, all child directories will be counted as well
 */
-count_files :: proc(
+count_files_in_dir :: proc(
 	directory: string,
 	recursive: bool = true,
 ) -> (
@@ -216,7 +216,7 @@ count_files :: proc(
 
 	for f in files {
 		if f.is_dir && recursive {
-			dir_count, dir_size, dir_error := count_files(f.fullpath, recursive)
+			dir_count, dir_size, dir_error := count_files_in_dir(f.fullpath, recursive)
 			if dir_error != {} {
 				return count, size, dir_error
 			}
@@ -228,6 +228,36 @@ count_files :: proc(
 		}
 	}
 
+	return count, size, {}
+}
+
+/*
+	Recursively counts files in a given array
+	@param items: array of items whose count
+	@param recursive: if true, all child directories will be counted as well
+
+*/
+count_files_in_array :: proc(
+	items: []os.File_Info,
+	recursive: bool = true,
+) -> (
+	count: i64,
+	size: i64,
+	error: err.SfcException,
+) {
+	for info in items {
+		if !info.is_dir {
+			count += 1
+			size += info.size
+		} else if recursive {
+			dir_count, dir_size, count_error := count_files_in_dir(info.fullpath, true)
+			if count_error != {} {
+				return count, size, count_error
+			}
+			count += dir_count
+			size += dir_size
+		}
+	}
 	return count, size, {}
 }
 
