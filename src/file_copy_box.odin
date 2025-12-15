@@ -82,7 +82,7 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 			}
 			if i.key == .Enter {
 				box.state = .progress
-				change_box_with_title_title(&box.panel, "Copying files")
+				change_box_with_title_title(&box.panel, "Copying files...")
 				// start_file_copy_thread(&box.copy_token)
 			}
 		}
@@ -106,7 +106,11 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 
 	switch box.state {
 	case .progress:
-		draw_label_with_value({left + 6, top + 1}, "Files:", str_total_count, 14)
+		count_progress := fmt.tprintf("%v / %v", str_finished_count, str_total_count)
+		size_progress := fmt.tprintf("%v / %v", str_finished_size, str_total_size)
+
+		draw_label_with_value({left + 3, top + 1}, "Files:", count_progress, 8)
+		draw_label_with_value({left + 3, top + 2}, "Size:", size_progress, 8)
 
 	case .preparation:
 		draw_label_with_value({left + 6, top + 1}, "Files:", str_total_count, 14)
