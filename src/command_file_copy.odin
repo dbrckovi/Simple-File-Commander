@@ -4,28 +4,21 @@ import "core:sync"
 import "core:thread"
 import "core:time"
 import "errors"
+import "filesystem"
 
 FileCopyToken :: struct {
-	cancel_requested:  bool, //caller thread sets this to false to cancel the thread
+	cancel_requested:  bool, //set to true when thread should stop
+	state:             ThreadState, //current state of the thread. Set by thread
 	thread:            ^thread.Thread,
-	request:           i32, //TODO: type
-	response:          i32, //TODO: type
+	dialog:            ThreadDialog,
 	source_file_infos: [dynamic]SfcFileInfo, //array of items which were selected in the source panel. Set by caller thread
 	destination_dir:   string, //destination directory. Set by caller thread
 	using settings:    FileCopySettings,
-	using progress:    ProgressInfo,
+	using progress:    ThreadProgress,
 }
 
 FileCopySettings :: struct {
 	overwrite_files: Maybe(bool), //nil -> ask user
-}
-
-// TODO: put somewhere more general
-ProgressInfo :: struct {
-	total_count:    i64, //total number of items
-	total_size:     i64, //total size of items in bytes
-	finished_count: i64, //number of finished items
-	finished_size:  i64, //sum sizes of finished bytes
 }
 
 start_file_copy_thread :: proc(token: ^FileCopyToken) -> errors.SfcException {
@@ -54,13 +47,27 @@ stop_and_destroy_file_copy_thread :: proc(token: ^FileCopyToken) {
 
 file_copy_work :: proc(t: ^thread.Thread) {
 	token := (^FileCopyToken)(t.data)
+	sync.atomic_store(&token.state, .running)
 
-	for {
-		//TODO: do
+	i := 0
+
+	for file in token.source_file_infos {
 		sync.atomic_add(&token.finished_count, 1)
-		time.sleep(time.Millisecond)
+		sync.atomic_add(&token.finished_size, 100)
+
+		i += 1
+		if i >= 4 {
+			response, _ := start_thread_dialog(&token.dialog, .overwrite_file, file.file.fullpath)
+
+			if response == .cancel do break
+			//TODO: Handle response properly
+		}
+
+		trigger_update()
+		time.sleep(300 * time.Millisecond)
 	}
 
-	//TODO: Set success result to token
+	sync.atomic_store(&token.state, .stopped)
+	trigger_update()
 }
 

@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import "core:sync"
+import "core:thread"
 import "errors"
 import fs "filesystem"
 
@@ -53,6 +54,10 @@ create_file_copy_box :: proc(
 }
 
 destroy_file_copy_box :: proc(box: ^FileCopyBox) {
+	//TODO: Review
+	thread.join(box.copy_token.thread)
+	thread.destroy(box.copy_token.thread)
+
 	if len(box.panel.title) > 0 {
 		delete(box.panel.title)
 	}
@@ -83,7 +88,7 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 			if i.key == .Enter {
 				box.state = .progress
 				change_box_with_title_title(&box.panel, "Copying files...")
-				// start_file_copy_thread(&box.copy_token)
+				start_file_copy_thread(&box.copy_token)
 			}
 		}
 	case t.Mouse_Input:
@@ -111,6 +116,25 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 
 		draw_label_with_value({left + 3, top + 1}, "Files:", count_progress, 8)
 		draw_label_with_value({left + 3, top + 2}, "Size:", size_progress, 8)
+
+		percent_finished: f32 = f32(finished_count) / f32(box.copy_token.total_count)
+		str_percent_finished := fmt.tprintf("%.2v %%", percent_finished)
+		set_color_pair(_current_theme.dialog_value)
+
+		//percent finished
+		using box.panel.rectangle
+		write(
+			str_percent_finished,
+			{uint(x + (w - strings.rune_count(str_percent_finished)) / 2), top + 5},
+		)
+
+		draw_progress_bar_h(
+			{left + 3, top + 6},
+			uint(box.panel.rectangle.w - 10),
+			percent_finished,
+		)
+
+		draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)
 
 	case .preparation:
 		draw_label_with_value({left + 6, top + 1}, "Files:", str_total_count, 14)

@@ -24,11 +24,6 @@ Rectangle :: struct {
 	h: int,
 }
 
-draw_groupbox :: proc(rectangle: Rectangle, title: string, border: BorderStyle) {
-
-}
-
-
 /*
 	Initializes the terminal screen
 */

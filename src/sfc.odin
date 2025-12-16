@@ -5,7 +5,9 @@ import tb "../lib/TermCL/term"
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import "core:sync"
 import "core:sys/posix"
+import "core:time"
 import err "errors"
 import fs "filesystem"
 
@@ -20,6 +22,7 @@ _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
 _current_dialog: Widget //currently displayed dialog widget (if any)
+_update_triggered := false //becomes true briefly when background thread triggers an update
 
 main :: proc() {
 	_pid = posix.getpid()
@@ -48,8 +51,23 @@ init :: proc() {
 init_panels :: proc() {
 	_focused_panel = &_left_panel
 	cwd := os.get_current_directory(context.temp_allocator)
-	initialize_file_panel(&_left_panel, cwd)
-	initialize_file_panel(&_right_panel, cwd)
+	left_dir := "/home/dbrckovi/aaa"
+	right_dir := "/home/dbrckovi/bbb"
+	//TODO: load last dir from settings
+
+	if !os.exists(left_dir) do left_dir = cwd
+	if !os.exists(right_dir) do right_dir = cwd
+
+	initialize_file_panel(&_left_panel, left_dir)
+	initialize_file_panel(&_right_panel, right_dir)
+}
+
+/*
+	Triggers update and redraw as soon as possible.
+	Intended to be called from background threads.
+*/
+trigger_update :: proc() {
+	sync.atomic_store(&_update_triggered, true)
 }
 
 /*
@@ -129,8 +147,7 @@ wait_for_interesting_event :: proc() -> (t.Input, bool) {
 	input: t.Input = nil
 	screen_size_changed: bool = false
 	should_break := false
-	for {
-
+	WAIT_LOOP: for {
 		new_size := t.get_term_size()
 		if new_size != _screen.size {
 			screen_size_changed = true
@@ -138,11 +155,22 @@ wait_for_interesting_event :: proc() -> (t.Input, bool) {
 		}
 
 		input = t.read(&_screen)
-
-		if screen_size_changed || input != nil {
-			break
+		if input != nil {
+			should_break = true
 		}
+
+		if sync.atomic_load(&_update_triggered) {
+			should_break = true
+		}
+
+		if should_break {
+			break WAIT_LOOP
+		}
+
+		time.sleep(time.Millisecond)
 	}
+
+	sync.atomic_store(&_update_triggered, false)
 
 	return input, screen_size_changed
 }

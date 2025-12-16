@@ -537,29 +537,6 @@ init_copy_process :: proc() {
 	}
 }
 
-
-/*
-	Copies currently selected items from foucsed panel to other panel's directory
-	If nothing is selected a focused item is taken if possible
-*/
-perform_copy :: proc() {
-	dest_panel := &_left_panel == _focused_panel ? _right_panel : _left_panel
-
-	//TODO: This is useless because there is a threaded version
-
-	for file in _focused_panel.files {
-		if file.selected && !file.file.is_dir {
-			err := fs.copy_file_to_directory(file.file, dest_panel.current_dir)
-			if err != {} {
-				show_error_message(err)
-			}
-		}
-	}
-
-	reload_file_panel(&_left_panel)
-	reload_file_panel(&_right_panel)
-}
-
 /*
 	Deletes currently selected items in foucsed panel 
 	If nothing is selected a focused item is taken if possible

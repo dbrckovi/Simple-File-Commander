@@ -19,8 +19,13 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 
 # Reminder TODO:
 
+ - [ ] Figure out how to trigger dialog to handle thread request
  - [ ] Keep it !!! SIMPLE !!!
-
+ - [ ] Keys idea:
+      - a - selects all files and directories
+      - A - selects all items of focused type (if dir is focused, select all dirs)
+      - d - deselects all files and directories
+      - D - deselects all items of focused type (if dir is focused, deselect all dirs)
  - [ ] Navigating to /home/lost+found returns EBADF error
  - [ ] rewrite messagebox and text viewer to use slices instead of cloning strings
  - [ ] CommandBar.builder is convoluted. read TODO
