@@ -10,9 +10,9 @@ import "errors"
 import fs "filesystem"
 
 FileCopyBoxState :: enum {
-	preparation = 0, // Allows user to specifiy copy settings or cancel, before copying starts
-	progress    = 1, // Shows copy progress and allows cancellation
-	question    = 2, // When thread needs user's feedback
+	preparation    = 0, // Allows user to specifiy copy settings or cancel, before copying starts
+	progress       = 1, // Shows copy progress and allows cancellation
+	thread_request = 2, // Allows user to respond to thread requests
 }
 
 FileCopyBox :: struct {
@@ -91,8 +91,38 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 				start_file_copy_thread(&box.copy_token)
 			}
 		}
+		if box.state == .thread_request {
+			request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
+			if request_type == .overwrite_file {
+				if i.key == .Y {
+					post_thread_response(&box.copy_token.dialog, .yes)
+					box.state = .progress
+				} else if i.key == .A {
+					post_thread_response(&box.copy_token.dialog, .yes_all)
+					box.state = .progress
+				} else if i.key == .N {
+					post_thread_response(&box.copy_token.dialog, .no)
+					box.state = .progress
+				}
+			}
+		}
 	case t.Mouse_Input:
 	}
+}
+
+handle_thread_request_file_copy_box :: proc(box: ^FileCopyBox) {
+	request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
+
+	if request_type == .overwrite_file {
+		box.state = .thread_request
+	}
+
+	/*
+	TODO:
+	- if thread finished, clean up everything
+	- if thread failed, clean up and show error
+	- if thread has questions, set 'thread_request' state 
+	*/
 }
 
 draw_file_copy_box :: proc(box: ^FileCopyBox) {
@@ -145,8 +175,22 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 
 		draw_key_with_function({left, top + 9}, "Enter", "Start", 10)
 		draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)
-	case .question:
-	//TODO: do
+	case .thread_request:
+		request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
+
+		if request_type == .overwrite_file {
+			set_color_pair(_current_theme.dialog_main)
+			write("Overwrite file?", {left, top + 1})
+
+			set_color_pair(_current_theme.dialog_main)
+			write(box.copy_token.dialog.request_text, {left, top + 3})
+
+			draw_key_with_function({left, top + 6}, "y", "Yes", 10)
+			draw_key_with_function({left, top + 7}, "a", "Yes to all", 10)
+			draw_key_with_function({left, top + 8}, "n", "No", 10)
+			draw_key_with_function({left, top + 10}, "Esc", "Abort copy", 10)
+		}
+
 	}
 }
 

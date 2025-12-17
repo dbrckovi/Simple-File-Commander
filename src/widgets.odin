@@ -24,11 +24,7 @@ BorderStyle :: enum {
 	double,
 }
 
-//TODO: Group all input, layout and destroy calls as a single proc overloads?
-
-
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
-
 	#partial switch &w in widget {
 	case CommandBar:
 		handle_input_command_bar(&w, input)
@@ -37,8 +33,8 @@ handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 	}
 }
 
-handle_layout_change :: proc(w: ^Widget) {
-	switch &w in _current_dialog {
+handle_layout_change :: proc(widget: ^Widget) {
+	switch &w in widget {
 	case MessageBox:
 		perform_messagebox_layout(&w)
 	case CommandBar:
@@ -47,6 +43,18 @@ handle_layout_change :: proc(w: ^Widget) {
 		perform_text_viewer_layout(&w)
 	case FileCopyBox:
 		perform_file_copy_box_layout(&w)
+	}
+}
+
+/*
+	Dispatches the thread request to current dialog
+*/
+handle_thread_request :: proc(widget: ^Widget) {
+	#partial switch &w in widget {
+	case FileCopyBox:
+		handle_thread_request_file_copy_box(&w)
+	case:
+		panic("Widget is not of type that can handle thread request")
 	}
 }
 

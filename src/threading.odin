@@ -49,7 +49,7 @@ ThreadDialog :: struct {
 /*
 	Starts a thread dialog and waits for other side to answer
 */
-start_thread_dialog :: proc(
+post_thread_request :: proc(
 	dialog: ^ThreadDialog,
 	request: ThreadRequestType,
 	request_text: string,
@@ -58,7 +58,7 @@ start_thread_dialog :: proc(
 	response_text: string,
 ) {
 	if sync.atomic_load(&dialog.response) != .none do panic("Response of previous dialog was not cleared")
-	if len(dialog.response_text) > 0 do panic("Response text of prevouls dialog was not cleared")
+	if len(dialog.response_text) > 0 do panic("Response text of prevous dialog was not cleared")
 	if sync.atomic_load(&dialog.request) != .none do panic("Request of previous dialog was not cleared")
 	if len(dialog.request_text) > 0 do panic("Response text of prevouls dialog was not cleared")
 
@@ -81,6 +81,20 @@ start_thread_dialog :: proc(
 	clear_thread_dialog(dialog)
 	return response, response_text
 }
+
+post_thread_response :: proc(
+	dialog: ^ThreadDialog,
+	response: DialogResult,
+	response_text: string = {},
+) {
+	if len(dialog.response_text) > 0 do panic("Thread dialog response_text is already assigned")
+
+	if len(response_text) > 0 {
+		dialog.response_text = fmt.aprint(response_text)
+	}
+	sync.atomic_store(&dialog.response, response)
+}
+
 
 /*
 	Clears threading dialog. Only background thread who initiated the dialog may call this

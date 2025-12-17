@@ -56,8 +56,14 @@ file_copy_work :: proc(t: ^thread.Thread) {
 		sync.atomic_add(&token.finished_size, 100)
 
 		i += 1
-		if i >= 4 {
-			response, _ := start_thread_dialog(&token.dialog, .overwrite_file, file.file.fullpath)
+		if i == 4 {
+			response, response_text := post_thread_request(
+				&token.dialog,
+				.overwrite_file,
+				file.file.fullpath,
+			)
+
+			if len(response_text) > 0 do delete(response_text)
 
 			if response == .cancel do break
 			//TODO: Handle response properly

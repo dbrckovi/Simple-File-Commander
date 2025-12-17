@@ -19,7 +19,8 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 
 # Reminder TODO:
 
- - [ ] Figure out how to trigger dialog to handle thread request
+ - [ ] Threads are anything but simple. Generalize
+        It's unclear which thread is responsible for setting which variable and when
  - [ ] Keep it !!! SIMPLE !!!
  - [ ] Keys idea:
       - a - selects all files and directories
