@@ -19,8 +19,8 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 
 # Reminder TODO:
 
- - [ ] Threads are anything but simple. Generalize
-        It's unclear which thread is responsible for setting which variable and when
+TODO: look in token.settings.overwrite_files
+
  - [ ] Keep it !!! SIMPLE !!!
  - [ ] Keys idea:
       - a - selects all files and directories

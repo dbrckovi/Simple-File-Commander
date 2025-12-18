@@ -56,7 +56,7 @@ file_copy_work :: proc(t: ^thread.Thread) {
 		sync.atomic_add(&token.finished_size, 100)
 
 		i += 1
-		if i == 4 {
+		if i == 2 || i == 4 {
 			response, response_text := post_thread_request(
 				&token.dialog,
 				.overwrite_file,
@@ -75,5 +75,24 @@ file_copy_work :: proc(t: ^thread.Thread) {
 
 	sync.atomic_store(&token.state, .stopped)
 	trigger_update()
+}
+
+should_overwrite_file :: proc(
+	token: ^FileCopyToken,
+	file_path: string,
+) -> (
+	answer: bool,
+	should_continue: bool,
+) {
+	/*
+	TODO: look in token.settings.overwrite_files
+	- if defined, return it
+	- if not, post a thread request, handle it and return it
+	*/
+
+	response, response_text := post_thread_request(&token.dialog, .overwrite_file, file_path)
+	if len(response_text) > 0 do delete(response_text)
+
+	return answer, should_continue
 }
 

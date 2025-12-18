@@ -58,7 +58,7 @@ post_thread_request :: proc(
 	response_text: string,
 ) {
 	if sync.atomic_load(&dialog.response) != .none do panic("Response of previous dialog was not cleared")
-	if len(dialog.response_text) > 0 do panic("Response text of prevous dialog was not cleared")
+	if len(dialog.response_text) > 0 do panic("Response text of previous dialog was not cleared")
 	if sync.atomic_load(&dialog.request) != .none do panic("Request of previous dialog was not cleared")
 	if len(dialog.request_text) > 0 do panic("Response text of prevouls dialog was not cleared")
 
@@ -95,7 +95,6 @@ post_thread_response :: proc(
 	sync.atomic_store(&dialog.response, response)
 }
 
-
 /*
 	Clears threading dialog. Only background thread who initiated the dialog may call this
 */
@@ -105,9 +104,11 @@ clear_thread_dialog :: proc(dialog: ^ThreadDialog) {
 
 	if len(dialog.request_text) > 0 {
 		delete(dialog.request_text)
+		dialog.request_text = {}
 	}
 	if len(dialog.response_text) > 0 {
 		delete(dialog.response_text)
+		dialog.response_text = {}
 	}
 }
 
