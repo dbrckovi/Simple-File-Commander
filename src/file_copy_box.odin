@@ -43,11 +43,10 @@ create_file_copy_box :: proc(
 		return box, count_error
 	}
 
-	using box.copy_token
-	source_file_infos = source_files
-	destination_dir = strings.clone(destination_dir, allocator)
-	total_count = count
-	total_size = size
+	box.copy_token.destination_dir = strings.clone(destination_dir, allocator)
+	box.copy_token.source_file_infos = source_files
+	box.copy_token.total_count = count
+	box.copy_token.total_size = size
 
 	perform_file_copy_box_layout(&box)
 	return box, {}
@@ -112,8 +111,9 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 
 handle_thread_request_file_copy_box :: proc(box: ^FileCopyBox) {
 	request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
+	response: DialogResult = sync.atomic_load(&box.copy_token.dialog.response)
 
-	if request_type == .overwrite_file {
+	if request_type == .overwrite_file && response == .none {
 		box.state = .thread_request
 	}
 
@@ -121,7 +121,6 @@ handle_thread_request_file_copy_box :: proc(box: ^FileCopyBox) {
 	TODO:
 	- if thread finished, clean up everything
 	- if thread failed, clean up and show error
-	- if thread has questions, set 'thread_request' state 
 	*/
 }
 
@@ -190,7 +189,6 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 			draw_key_with_function({left, top + 8}, "n", "No", 10)
 			draw_key_with_function({left, top + 10}, "Esc", "Abort copy", 10)
 		}
-
 	}
 }
 

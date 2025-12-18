@@ -1,5 +1,8 @@
 package sfc
 
+import "core:fmt"
+import "core:os"
+import filepath "core:path/filepath"
 import "core:sync"
 import "core:thread"
 import "core:time"
@@ -55,18 +58,15 @@ file_copy_work :: proc(t: ^thread.Thread) {
 		sync.atomic_add(&token.finished_count, 1)
 		sync.atomic_add(&token.finished_size, 100)
 
-		i += 1
-		if i == 2 || i == 4 {
-			response, response_text := post_thread_request(
-				&token.dialog,
-				.overwrite_file,
-				file.file.fullpath,
-			)
+		if file.file.is_dir {
+			//TODO: call copy dir
+		} else {
+			copy_error := threaded_copy_file(token, file.file, token.destination_dir)
 
-			if len(response_text) > 0 do delete(response_text)
-
-			if response == .cancel do break
-			//TODO: Handle response properly
+			if copy_error != {} {
+				token.state = .stopped
+				//TODO: set error to token
+			}
 		}
 
 		trigger_update()
@@ -77,22 +77,84 @@ file_copy_work :: proc(t: ^thread.Thread) {
 	trigger_update()
 }
 
+
+threaded_copy_dir :: proc(
+	token: ^FileCopyToken,
+	src_dir: string,
+	dest_dir: string,
+) -> errors.SfcError {
+
+	return {}
+}
+
+threaded_copy_file :: proc(
+	token: ^FileCopyToken,
+	src_file: os.File_Info,
+	dest_dir: string,
+) -> errors.SfcException {
+
+	dest_file := filepath.join({dest_dir, src_file.name}, context.temp_allocator)
+
+	if os.exists(dest_file) {
+		overwrite, can_continue := should_overwrite_file(token, dest_file)
+		if !can_continue {
+			return errors.create_exception(
+				.cancelled,
+				fmt.tprint("File copy operation cancelled"),
+				context.allocator,
+			)
+		} else if !overwrite {
+			sync.atomic_add(&token.finished_count, 1)
+			return {}
+		}
+	}
+
+	copy_error := filesystem.copy_file_raw(src_file.fullpath, dest_file)
+
+	if copy_error != {} do return copy_error
+	else {
+		sync.atomic_add(&token.finished_count, 1)
+		sync.atomic_add(&token.finished_size, src_file.size)
+		return {}
+	}
+}
+
 should_overwrite_file :: proc(
 	token: ^FileCopyToken,
 	file_path: string,
 ) -> (
-	answer: bool,
-	should_continue: bool,
+	overwrite: bool = true,
+	can_continue: bool,
 ) {
-	/*
-	TODO: look in token.settings.overwrite_files
-	- if defined, return it
-	- if not, post a thread request, handle it and return it
-	*/
+	old_overwrite, ok := token.overwrite_files.?
+
+	if ok {
+		overwrite = old_overwrite
+	} else {
+		response, response_text := post_thread_request(&token.dialog, .overwrite_file, file_path)
+		if len(response_text) > 0 do delete(response_text)
+
+		#partial switch response {
+		case .cancel:
+			can_continue = false
+		case .yes:
+			overwrite = true
+		case .yes_all:
+			overwrite = true
+			token.overwrite_files = true
+		case .no:
+			overwrite = false
+		case .no_all:
+			overwrite = false
+			token.overwrite_files = false
+		case .none:
+			panic("Unexpected dialog response")
+		}
+	}
 
 	response, response_text := post_thread_request(&token.dialog, .overwrite_file, file_path)
 	if len(response_text) > 0 do delete(response_text)
 
-	return answer, should_continue
+	return overwrite, can_continue
 }
 

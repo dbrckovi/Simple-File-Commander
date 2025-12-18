@@ -85,6 +85,15 @@ reset_file_panel_memory :: proc(panel: ^FilePanel) {
 }
 
 /*
+	Reloads contents (files and dirs) in both panels
+*/
+reload_both_panels :: proc(preserve_selection: bool = true) {
+	reload_file_panel(&_left_panel, preserve_selection)
+	reload_file_panel(&_right_panel, preserve_selection)
+}
+
+
+/*
 	Reloads files in current directory of specified panel
 */
 reload_file_panel :: proc(panel: ^FilePanel, preserve_selection: bool = true) {
@@ -522,7 +531,11 @@ init_copy_process :: proc() {
 	}
 
 	if len(selected_files) > 0 {
-		dlg, err := create_file_copy_box(selected_files, dest_panel.current_dir, context.allocator)
+		dlg, err := create_file_copy_box(
+			selected_files,
+			strings.clone(dest_panel.current_dir),
+			context.allocator,
+		)
 		if err != {} {
 			destroy_file_copy_box(&dlg)
 			show_error_message(err)

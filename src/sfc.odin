@@ -143,6 +143,7 @@ handle_input_main :: proc(input: t.Input) {
 		if i.key == .F5 || i.key == .Num_5 do init_copy_process()
 		if i.key == .F8 do perform_delete()
 		if i.key == .Colon do goto_command_mode()
+		if i.key == .R do reload_both_panels()
 	case t.Mouse_Input:
 	//todo: handle mouse
 	}

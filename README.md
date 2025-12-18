@@ -18,9 +18,7 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 ![Screenshot goes here](Screenshot.png)
 
 # Reminder TODO:
-
-TODO: look in token.settings.overwrite_files
-
+ - [ ] Threading sync mechanism sucks. Rewrite everything from scratch
  - [ ] Keep it !!! SIMPLE !!!
  - [ ] Keys idea:
       - a - selects all files and directories

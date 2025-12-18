@@ -37,6 +37,7 @@ FileSystemError :: enum {
 GeneralError :: enum {
 	undefined,
 	thread_not_created,
+	cancelled,
 }
 
 create_exception :: proc(

@@ -13,67 +13,10 @@ import "core:strings"
 
 import "core:os"
 
-copy_file_to_directory :: proc(
-	src_file: os.File_Info,
-	dest_dir: string,
-	overwrite := false,
-) -> err.SfcException {
-
-	if len(dest_dir) == 0 {
-		return err.create_exception(
-			.undefined,
-			"'dest_dir' is not defined",
-			context.temp_allocator,
-		)
-	}
-
-	if !os.exists(dest_dir) {
-		return err.create_exception(.does_not_exist, fmt.tprintf(" '%v' does not exist", dest_dir))
-	}
-
-	if !os.is_dir(dest_dir) {
-		return err.create_exception(
-			.not_a_directory,
-			fmt.tprintf(" '%v' is not a directory", src_file),
-		)
-	}
-
-	// dest_file_builder := strings.builder_make(context.temp_allocator)
-	// strings.write_string(&dest_file_builder, dest_dir)
-	// if !strings.ends_with(dest_dir, "/") {
-	// 	strings.write_string(&dest_file_builder, "/")
-	// }
-	// strings.write_string(&dest_file_builder, src_file.name)
-
-	dest_file := filepath.join({dest_dir, src_file.name}, context.temp_allocator)
-
-	return copy_file_raw(src_file.fullpath, dest_file, overwrite = true)
-}
-
 /*
 Copies a single file to destination
 */
-@(private)
-copy_file_raw :: proc(src_file, dest_file: string, overwrite := false) -> err.SfcException {
-
-	if strings.equal_fold(src_file, dest_file) {
-		return err.create_exception(
-			.destination_same_as_source,
-			fmt.tprint("Destination path is the same as the source:", dest_file),
-			context.temp_allocator,
-		)
-	}
-
-	if !overwrite && os.exists(dest_file) {
-		return err.create_exception(
-			.overwrite_not_requrested,
-			fmt.tprint(
-				"Target of 'copy' operation already exists, but 'overwrite' flag is not set:",
-				dest_file,
-			),
-			context.temp_allocator,
-		)
-	}
+copy_file_raw :: proc(src_file, dest_file: string) -> err.SfcException {
 
 	src_info, stat_err := os.stat(src_file)
 	if stat_err != nil {
