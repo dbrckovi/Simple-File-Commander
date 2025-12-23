@@ -22,7 +22,6 @@ _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
 _current_dialog: Widget //currently displayed dialog widget (if any)
-_thread_request_pending := false //becomes true briefly when background thread triggers an update
 
 main :: proc() {
 	_pid = posix.getpid()
@@ -63,18 +62,10 @@ init_panels :: proc() {
 }
 
 /*
-	Triggers update and redraw as soon as possible.
-	Intended to be called from background threads.
-*/
-trigger_update :: proc() {
-	sync.atomic_store(&_thread_request_pending, true)
-}
-
-/*
 	Waits for something interesting to happen and handles it
 */
 update :: proc() {
-	input, screen_size_changed, request_pending := wait_for_interesting_event()
+	input, screen_size_changed := wait_for_interesting_event(100 * time.Millisecond)
 
 	if screen_size_changed {
 		deinit_screen()
@@ -99,14 +90,6 @@ update :: proc() {
 			handle_widget_input(&_current_dialog, input)
 		} else {
 			handle_input_main(input)
-		}
-	}
-
-	if request_pending {
-		if _current_dialog != nil {
-			handle_thread_request(&_current_dialog)
-		} else {
-			panic("Thread request detected but there are no widgets that could handle it")
 		}
 	}
 }
@@ -151,13 +134,16 @@ handle_input_main :: proc(input: t.Input) {
 
 /*
 	Waits for something interesting to happen (which would cause the screen to redraw) and returns info on what happened
+	@param timeout_ms: number of milliseconds to wait for something interesting. If nothing happens, return anyway
 */
 wait_for_interesting_event :: proc(
+	timeout_ms: time.Duration,
 ) -> (
 	input: t.Input,
 	screen_size_changed: bool,
-	thread_request_pending: bool,
 ) {
+	start := time.now()
+
 	WAIT_LOOP: for {
 		input = t.read(&_screen)
 
@@ -166,21 +152,18 @@ wait_for_interesting_event :: proc(
 			screen_size_changed = true
 		}
 
+		timeout_expired := false
+		elapsed := time.diff(start, time.now())
+		if elapsed > timeout_ms do timeout_expired = true
 
-		if sync.atomic_load(&_thread_request_pending) {
-			thread_request_pending = true
-		}
-
-		if input != nil || screen_size_changed || thread_request_pending {
+		if input != nil || screen_size_changed || timeout_expired {
 			break WAIT_LOOP
 		}
 
 		time.sleep(time.Millisecond)
 	}
 
-	sync.atomic_store(&_thread_request_pending, false)
-
-	return input, screen_size_changed, thread_request_pending
+	return input, screen_size_changed
 }
 
 /*

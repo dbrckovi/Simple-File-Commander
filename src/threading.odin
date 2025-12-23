@@ -68,7 +68,6 @@ post_thread_request :: proc(
 	}
 
 	//wait for response
-	trigger_update()
 	for sync.atomic_load(&dialog.response) == .none {
 		time.sleep(time.Millisecond)
 	}

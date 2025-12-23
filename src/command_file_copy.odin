@@ -25,20 +25,20 @@ FileCopySettings :: struct {
 }
 
 start_file_copy_thread :: proc(token: ^FileCopyToken) -> errors.SfcException {
-	token.thread = thread.create(file_copy_work)
+	// token.thread = thread.create(file_copy_work)
 
-	if token.thread == nil {
-		err := errors.create_exception(
-			errors.GeneralError.thread_not_created,
-			"File copy thread was not created",
-			context.temp_allocator,
-		)
-		return err
-	}
+	// if token.thread == nil {
+	// 	err := errors.create_exception(
+	// 		errors.GeneralError.thread_not_created,
+	// 		"File copy thread was not created",
+	// 		context.temp_allocator,
+	// 	)
+	// 	return err
+	// }
 
-	token.thread.init_context = context
-	token.thread.data = rawptr(token)
-	thread.start(token.thread)
+	// token.thread.init_context = context
+	// token.thread.data = rawptr(token)
+	// thread.start(token.thread)
 	return {}
 }
 
@@ -48,34 +48,32 @@ stop_and_destroy_file_copy_thread :: proc(token: ^FileCopyToken) {
 	thread.destroy(token.thread)
 }
 
-file_copy_work :: proc(t: ^thread.Thread) {
-	token := (^FileCopyToken)(t.data)
-	sync.atomic_store(&token.state, .running)
+// file_copy_work :: proc(t: ^thread.Thread) {
+// 	token := (^FileCopyToken)(t.data)
+// 	sync.atomic_store(&token.state, .running)
 
-	i := 0
+// 	i := 0
 
-	for file in token.source_file_infos {
-		sync.atomic_add(&token.finished_count, 1)
-		sync.atomic_add(&token.finished_size, 100)
+// 	for file in token.source_file_infos {
+// 		sync.atomic_add(&token.finished_count, 1)
+// 		sync.atomic_add(&token.finished_size, 100)
 
-		if file.file.is_dir {
-			//TODO: call copy dir
-		} else {
-			copy_error := threaded_copy_file(token, file.file, token.destination_dir)
+// 		if file.file.is_dir {
+// 			//TODO: call copy dir
+// 		} else {
+// 			copy_error := threaded_copy_file(token, file.file, token.destination_dir)
 
-			if copy_error != {} {
-				token.state = .stopped
-				//TODO: set error to token
-			}
-		}
+// 			if copy_error != {} {
+// 				token.state = .stopped
+// 				//TODO: set error to token
+// 			}
+// 		}
 
-		trigger_update()
-		time.sleep(300 * time.Millisecond)
-	}
+// 		time.sleep(300 * time.Millisecond)
+// 	}
 
-	sync.atomic_store(&token.state, .stopped)
-	trigger_update()
-}
+// 	sync.atomic_store(&token.state, .stopped)
+// }
 
 
 threaded_copy_dir :: proc(

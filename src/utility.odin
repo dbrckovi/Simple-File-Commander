@@ -48,6 +48,16 @@ compare_dates :: proc(a, b: time.Time) -> int {
 	else do return 0
 }
 
+format_datetime :: proc(value: time.Time) -> string {
+	//TODO: develop and apply formatting from settings
+
+	y, M, d := time.date(value)
+	h, m, s := time.clock(value)
+
+	return fmt.tprintf("%2d.%2d.%4d %2d:%2d", d, M, y, h, m)
+}
+
+
 compare_sizes :: proc(a, b: i64) -> int {
 	//TODO: find better algorithm or at least make generic
 	if a > b do return 1

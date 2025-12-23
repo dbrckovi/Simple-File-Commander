@@ -109,21 +109,6 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 	}
 }
 
-handle_thread_request_file_copy_box :: proc(box: ^FileCopyBox) {
-	request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
-	response: DialogResult = sync.atomic_load(&box.copy_token.dialog.response)
-
-	if request_type == .overwrite_file && response == .none {
-		box.state = .thread_request
-	}
-
-	/*
-	TODO:
-	- if thread finished, clean up everything
-	- if thread failed, clean up and show error
-	*/
-}
-
 draw_file_copy_box :: proc(box: ^FileCopyBox) {
 	draw_box_with_title(&box.panel)
 

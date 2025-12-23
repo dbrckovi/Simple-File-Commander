@@ -447,16 +447,9 @@ is_link :: proc(info: ^SfcFileInfo) -> bool {
 	Returns file's modification or creation date as string
 */
 get_file_date_string :: proc(info: os.File_Info) -> string {
-
-	value: time.Time = info.modification_time //TODO: take creating time if settings says so
-	//TODO: develop and apply formatting from settings
-
-	y, M, d := time.date(value)
-	h, m, s := time.clock(value)
-
-	return fmt.tprintf("%2d.%2d.%4d %2d:%2d", d, M, y, h, m)
+	//TODO: take creating time if settings says so
+	return format_datetime(info.modification_time)
 }
-
 
 get_file_permissions_string :: proc(info: os.File_Info) -> string {
 	sb := strings.builder_make(context.temp_allocator)

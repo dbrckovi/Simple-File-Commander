@@ -5,6 +5,7 @@ import tb "../lib/TermCL/term"
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import "core:time"
 
 SORT_ASCENDING_CHAR := "↓"
 SORT_DESCENDING_CHAR := "↑"
@@ -302,16 +303,12 @@ draw_panel :: proc(panel: ^FilePanel, left: uint, right: uint, bottom: uint) {
 		}
 	}
 
-	// msg := fmt.tprintf("%2b", get_focused_file_info().file.mode)
-	// indexes := "098765432109876543210"
-	// write_cropped(indexes, {left + 25 - len(indexes), summary_y - 1}, right, true)
-	// write_cropped(msg, {left + 25 - len(msg), summary_y}, right, true)
-
 	msg := fmt.tprintf(
-		"Files: %d, Selected: %d, ATTR: %v",
+		"Files: %d, Selected: %d, ATTR: %v, Time: %v",
 		file_count,
 		selected_file_count,
 		_settings.attribute_format,
+		format_datetime(time.now()),
 	)
 	set_color_pair(_current_theme.main)
 	write_cropped(msg, {left + 2, summary_y}, right, true)
