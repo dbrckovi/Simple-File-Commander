@@ -190,11 +190,26 @@ try_show_welcome_message :: proc() {
 debug :: proc() {
 }
 
-//TODO: redirect to more descriptive error type (when developed)
-show_error_message :: proc(error: err.SfcException) {
+/*
+	Creates, and adds a new error messagebox
+*/
+show_error_message :: proc {
+	show_error_message_fron_SfcException,
+	show_error_message_from_string,
+}
+
+show_error_message_fron_SfcException :: proc(error: err.SfcException) {
 	assert(error != {})
 
 	msg := fmt.tprint(error.message, "\n\n", "ERROR:", error.error)
+	box := create_messagebox(msg, "Error")
+	add_widget(&_widgets, box)
+}
+
+show_error_message_from_string :: proc(error: string) {
+	assert(len(error) != 0)
+
+	msg := fmt.tprint(error, "\n\n")
 	box := create_messagebox(msg, "Error")
 	add_widget(&_widgets, box)
 }

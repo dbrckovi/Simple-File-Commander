@@ -3,10 +3,10 @@ package sfc
 import t "../lib/TermCL"
 import "core:fmt"
 import "core:strings"
+import "errors"
 
 CommandBar :: struct {
 	chars: [dynamic]rune,
-	error: Maybe(string),
 }
 
 CommandAndParams :: struct {
@@ -24,18 +24,12 @@ draw_command_bar :: proc(bar: ^CommandBar) {
 
 	paint_rectangle(rect, _current_theme.dialog_main.bg)
 
-	error, has_error := bar.error.(string)
-	if has_error {
-		set_colors(_current_theme.error_message.fg, _current_theme.dialog_main.bg)
-		write(error, {1, uint(y)})
-	} else {
-		set_color_pair(_current_theme.dialog_main)
-		write(":", {0, uint(y)})
-		set_color_pair(_current_theme.dialog_title)
+	set_color_pair(_current_theme.dialog_main)
+	write(":", {0, uint(y)})
+	set_color_pair(_current_theme.dialog_title)
 
-		for c, i in bar.chars {
-			write(c, {uint(i + 1), uint(y)})
-		}
+	for c, i in bar.chars {
+		write(c, {uint(i + 1), uint(y)})
 	}
 }
 
@@ -46,19 +40,17 @@ destroy_command_bar :: proc(bar: ^CommandBar) {
 handle_input_command_bar :: proc(bar: ^CommandBar, input: t.Input) {
 	switch i in input {
 	case t.Keyboard_Input:
-		if !clear_command_bar_error(bar) {
-			char := key_to_rune(i.key)
-			if char != {} {
-				append(&bar.chars, char)
-			} else {
-				if i.key == .Backspace {
-					if len(bar.chars) > 0 {
-						unordered_remove(&bar.chars, len(bar.chars) - 1)
-					}
+		char := key_to_rune(i.key)
+		if char != {} {
+			append(&bar.chars, char)
+		} else {
+			if i.key == .Backspace {
+				if len(bar.chars) > 0 {
+					unordered_remove(&bar.chars, len(bar.chars) - 1)
 				}
-				if i.key == .Enter {
-					try_execute_bar_command(bar, context.allocator)
-				}
+			}
+			if i.key == .Enter {
+				try_execute_bar_command(bar, context.allocator)
 			}
 		}
 	case t.Mouse_Input:
@@ -77,9 +69,8 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 	cmd, ok := parse_command(strings.to_string(sb))
 
 	if !ok {
-		set_command_bar_error(bar, "Invalid command format!")
+		show_error_message("Invalid command format!")
 	} else { 	//TODO: make some central list so that hints can be displayed
-
 		if strings.equal_fold(cmd.command, "q") || strings.equal_fold(cmd.command, "quit") {
 			_should_run = false
 		} else if strings.equal_fold(cmd.command, "msgbox") {
@@ -93,8 +84,6 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 		   strings.equal_fold(cmd.command, "cd_up") {
 			destroy_top_widget(&_widgets)
 			cd_up(_focused_panel)
-
-
 		} else if strings.equal_fold(cmd.command, "cd") {
 			if len(cmd.params) > 0 {
 				//TODO: handle special shell directories and environment variables (ex: ~)
@@ -109,14 +98,13 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 					if error == nil {
 						destroy_top_widget(&_widgets)
 					} else {
-						set_command_bar_error(bar, fmt.tprint(error))
+						show_error_message(fmt.tprint(error))
+						// set_command_bar_error(bar, fmt.tprint(error))
 					}
 				}
 			} else {
-				set_command_bar_error(bar, "Directory parameter is missing")
+				show_error_message("Directory parameter is missing")
 			}
-
-
 		} else if strings.equal_fold(cmd.command, "help") || cmd.command == "?" {
 			destroy_top_widget(&_widgets)
 			box := create_text_viewer("TODO: draw help", "Help")
@@ -124,31 +112,9 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 		} else if strings.equal_fold(cmd.command, "debug") {
 			debug()
 		} else {
-			set_command_bar_error(bar, "Invalid command")
+			show_error_message("Invalid command")
 		}
 	}
-}
-
-/*
-	Sets command bar error which will be displayed until user's action
-	Clones the error_text
-*/
-set_command_bar_error :: proc(
-	bar: ^CommandBar,
-	error_text: string,
-	allocator := context.allocator,
-) {
-	clear_command_bar_error(bar)
-	bar.error = strings.clone(error_text, allocator)
-}
-
-clear_command_bar_error :: proc(bar: ^CommandBar) -> bool {
-	previous_error, had_error := bar.error.(string)
-	if had_error {
-		delete(previous_error)
-		bar.error = nil
-	}
-	return had_error
 }
 
 /*
