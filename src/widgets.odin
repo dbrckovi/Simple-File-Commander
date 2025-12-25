@@ -30,6 +30,9 @@ WidgetStack :: struct {
 	mutex:   sync.Mutex,
 }
 
+/*
+	Handles imput of specific widget
+*/
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 	#partial switch &w in widget {
 	case CommandBar:
@@ -39,6 +42,9 @@ handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
 	}
 }
 
+/*
+	Handles layout change of specific widget
+*/
 handle_layout_change :: proc(widget: ^Widget) {
 	switch &w in widget {
 	case MessageBox:
@@ -53,10 +59,15 @@ handle_layout_change :: proc(widget: ^Widget) {
 }
 
 /*
-	Destroys currently active top-level dialog
+	Destroys currently active top-level widget
 */
-destroy_top_dialog :: proc() {
-	top_widget := get_top_widget(&_widgets)
+destroy_top_widget :: proc(stack: ^WidgetStack) {
+	sync.lock(&stack.mutex)
+	top_widget: ^Widget
+	top_index := len(&stack.dialogs) - 1
+	if top_index >= 0 {
+		top_widget = &stack.dialogs[top_index]
+	}
 	if top_widget != nil {
 		switch &w in top_widget {
 		case MessageBox:
@@ -68,8 +79,9 @@ destroy_top_dialog :: proc() {
 		case FileCopyBox:
 			destroy_file_copy_box(&w)
 		}
-		remove_top_widget(&_widgets)
+		unordered_remove(&stack.dialogs, top_index)
 	}
+	sync.unlock(&stack.mutex)
 }
 
 init_widget_stack :: proc() -> WidgetStack {
@@ -86,15 +98,6 @@ init_widget_stack :: proc() -> WidgetStack {
 add_widget :: proc(stack: ^WidgetStack, widget: Widget) {
 	sync.lock(&stack.mutex)
 	append(&stack.dialogs, widget)
-	sync.unlock(&stack.mutex)
-}
-
-remove_top_widget :: proc(stack: ^WidgetStack) {
-	sync.lock(&stack.mutex)
-	top_index := len(&stack.dialogs) - 1
-	if top_index >= 0 {
-		unordered_remove(&stack.dialogs, top_index)
-	}
 	sync.unlock(&stack.mutex)
 }
 

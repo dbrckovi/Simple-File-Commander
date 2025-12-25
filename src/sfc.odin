@@ -82,7 +82,7 @@ update :: proc() {
 			i, is_keyboard := input.(t.Keyboard_Input)
 			if is_keyboard {
 				if i.key == .Escape {
-					destroy_top_dialog()
+					destroy_top_widget(&_widgets)
 					return
 				}
 			}
