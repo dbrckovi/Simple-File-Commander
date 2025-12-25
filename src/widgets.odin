@@ -47,12 +47,15 @@ handle_layout_change :: proc(widget: ^Widget) {
 }
 
 /*
-	Destroys currently active dialog
+	Destroys currently active top-level dialog
 */
-destroy_current_dialog :: proc() {
-	assert(_current_dialog != nil)
+destroy_top_dialog :: proc() {
+	assert(len(_dialogs) > 0)
+	top_index := len(_dialogs) - 1
 
-	switch &w in _current_dialog {
+	top_widget := _dialogs[top_index]
+
+	switch &w in top_widget {
 	case MessageBox:
 		destroy_messagebox(&w)
 	case CommandBar:
@@ -63,6 +66,6 @@ destroy_current_dialog :: proc() {
 		destroy_file_copy_box(&w)
 	}
 
-	_current_dialog = nil
+	unordered_remove(&_dialogs, top_index)
 }
 

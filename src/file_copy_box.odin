@@ -54,8 +54,10 @@ create_file_copy_box :: proc(
 
 destroy_file_copy_box :: proc(box: ^FileCopyBox) {
 	//TODO: Review
-	thread.join(box.copy_token.thread)
-	thread.destroy(box.copy_token.thread)
+	if (box.copy_token.thread != nil) {
+		thread.join(box.copy_token.thread)
+		thread.destroy(box.copy_token.thread)
+	}
 
 	if len(box.panel.title) > 0 {
 		delete(box.panel.title)

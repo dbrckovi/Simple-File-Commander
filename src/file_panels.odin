@@ -502,10 +502,9 @@ init_copy_process :: proc() {
 	selected_files := make([dynamic]SfcFileInfo)
 
 	if strings.equal_fold(source_panel.current_dir, dest_panel.current_dir) {
-		_current_dialog = create_messagebox(
-			"Source and destination directories may not be the same",
-			"Error",
-		)
+
+		box := create_messagebox("Source and destination directories may not be the same", "Error")
+		append(&_dialogs, box)
 		return
 	}
 
@@ -533,13 +532,14 @@ init_copy_process :: proc() {
 			destroy_file_copy_box(&dlg)
 			show_error_message(err)
 		} else {
-			_current_dialog = dlg
+			append(&_dialogs, dlg)
 		}
 	} else {
-		_current_dialog = create_messagebox(
+		box := create_messagebox(
 			"At least one file or directory must be selected or focused.\nParent directory may not be copied from within itself.",
 			"Error",
 		)
+		append(&_dialogs, box)
 	}
 }
 
@@ -569,7 +569,8 @@ perform_delete :: proc() {
 	Sets command bar as current dialog
 */
 goto_command_mode :: proc() {
-	assert(_current_dialog == nil)
-	_current_dialog = create_command_bar()
+	assert(len(_dialogs) == 0)
+	bar := create_command_bar()
+	append(&_dialogs, bar)
 }
 

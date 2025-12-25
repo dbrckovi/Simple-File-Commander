@@ -21,7 +21,7 @@ _right_panel: FilePanel //Right panel data
 _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
-_current_dialog: Widget //currently displayed dialog widget (if any)
+_dialogs: [dynamic]Widget //"stack" of dialogs. Empty if there are no dialogs. TODO: Find if there is actually a stack array. (Yeah I know this should be organized differently)
 
 main :: proc() {
 	_pid = posix.getpid()
@@ -43,9 +43,9 @@ init :: proc() {
 	init_screen()
 	init_panels()
 	init_theme(&_current_theme)
+	init_dialogs()
 	try_show_welcome_message()
 }
-
 
 init_panels :: proc() {
 	_focused_panel = &_left_panel
@@ -61,33 +61,41 @@ init_panels :: proc() {
 	initialize_file_panel(&_right_panel, right_dir)
 }
 
+init_dialogs :: proc() {
+	_dialogs = make([dynamic]Widget, context.allocator)
+}
+
 /*
 	Waits for something interesting to happen and handles it
 */
 update :: proc() {
 	input, screen_size_changed := wait_for_interesting_event(100 * time.Millisecond)
+	top_widget: ^Widget = nil
+	if len(_dialogs) > 0 {
+		top_widget = &_dialogs[len(_dialogs) - 1]
+	}
 
 	if screen_size_changed {
 		deinit_screen()
 		init_screen()
 		recalculate_indexes(&_left_panel)
 		recalculate_indexes(&_right_panel)
-		if _current_dialog != nil {
-			handle_layout_change(&_current_dialog)
+		for &widget in _dialogs {
+			handle_layout_change(&widget)
 		}
 	}
 
 	if input != nil {
-		if _current_dialog != nil {
+		if top_widget != nil {
 			i, is_keyboard := input.(t.Keyboard_Input)
 			if is_keyboard {
 				if i.key == .Escape {
-					destroy_current_dialog()
+					destroy_top_dialog()
 					return
 				}
 			}
 
-			handle_widget_input(&_current_dialog, input)
+			handle_widget_input(top_widget, input)
 		} else {
 			handle_input_main(input)
 		}
@@ -170,7 +178,7 @@ wait_for_interesting_event :: proc(
 	Shows welcome message if settings allow it and there are no other dialogs
 */
 try_show_welcome_message :: proc() {
-	if _settings.show_welcome_message && _current_dialog == nil {
+	if _settings.show_welcome_message && len(_dialogs) == 0 {
 		title := "Welcome to 'Simple File Commander'"
 		sb := strings.builder_make(context.temp_allocator)
 		strings.write_rune(&sb, '\n')
@@ -179,7 +187,8 @@ try_show_welcome_message :: proc() {
 		strings.write_rune(&sb, '\n')
 		strings.write_string(&sb, "Press 'Esc' to close this message.\n")
 		strings.write_rune(&sb, '\n')
-		_current_dialog = create_messagebox(strings.to_string(sb), title)
+		box := create_messagebox(strings.to_string(sb), title)
+		append(&_dialogs, box)
 	}
 }
 
@@ -187,19 +196,14 @@ try_show_welcome_message :: proc() {
 	Called when debug command is executed
 */
 debug :: proc() {
-	destroy_current_dialog()
-	_current_dialog = create_messagebox("test", "test")
 }
 
 //TODO: redirect to more descriptive error type (when developed)
 show_error_message :: proc(error: err.SfcException) {
 	assert(error != {})
 
-	if _current_dialog != nil {
-		destroy_current_dialog()
-	}
-
 	msg := fmt.tprint(error.message, "\n\n", "ERROR:", error.error)
-	_current_dialog = create_messagebox(msg, "Error")
+	box := create_messagebox(msg, "Error")
+	append(&_dialogs, box)
 }
 

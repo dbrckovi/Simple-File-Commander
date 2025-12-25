@@ -82,19 +82,17 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 
 		if strings.equal_fold(cmd.command, "q") || strings.equal_fold(cmd.command, "quit") {
 			_should_run = false
-
-
 		} else if strings.equal_fold(cmd.command, "msgbox") {
 			clear(&bar.chars)
 			text := len(cmd.params) > 0 ? cmd.params[0] : "text not defined"
 			title := len(cmd.params) > 1 ? cmd.params[1] : "title not defined"
-			destroy_current_dialog()
-			_current_dialog = create_messagebox(text, title)
-
+			destroy_top_dialog()
+			box := create_messagebox(text, title)
+			append(&_dialogs, box)
 
 		} else if strings.equal_fold(cmd.command, "cd..") ||
 		   strings.equal_fold(cmd.command, "cd_up") {
-			destroy_current_dialog()
+			destroy_top_dialog()
 			cd_up(_focused_panel)
 
 
@@ -102,15 +100,15 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 			if len(cmd.params) > 0 {
 				//TODO: handle special shell directories and environment variables (ex: ~)
 				if cmd.params[0] == "." {
-					destroy_current_dialog()
+					destroy_top_dialog()
 					reload_file_panel(_focused_panel)
 				} else if cmd.params[0] == ".." {
-					destroy_current_dialog()
+					destroy_top_dialog()
 					cd_up(_focused_panel)
 				} else {
 					error := cd(_focused_panel, cmd.params[0])
 					if error == nil {
-						destroy_current_dialog()
+						destroy_top_dialog()
 					} else {
 						set_command_bar_error(bar, fmt.tprint(error))
 					}
@@ -121,8 +119,9 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 
 
 		} else if strings.equal_fold(cmd.command, "help") || cmd.command == "?" {
-			destroy_current_dialog()
-			_current_dialog = create_text_viewer("TODO: draw help", "Help")
+			destroy_top_dialog()
+			box := create_text_viewer("TODO: draw help", "Help")
+			append(&_dialogs, box)
 
 		} else if strings.equal_fold(cmd.command, "debug") {
 			debug()

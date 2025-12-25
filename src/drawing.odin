@@ -88,8 +88,8 @@ draw_main_gui :: proc() {
 	draw_panel(&_left_panel, 0, main_splitter_x, panel_bottom_x)
 	draw_panel(&_right_panel, main_splitter_x, _screen.size.w - 1, panel_bottom_x)
 
-	if _current_dialog != nil {
-		draw_widget(&_current_dialog)
+	for &widget in _dialogs {
+		draw_widget(&widget)
 	}
 }
 
