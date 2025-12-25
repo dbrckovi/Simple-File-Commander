@@ -1,6 +1,7 @@
 package sfc
 
 import t "../lib/TermCL"
+import "core:sync"
 
 Widget :: union {
 	MessageBox,
@@ -22,6 +23,11 @@ BorderStyle :: enum {
 	none,
 	single,
 	double,
+}
+
+WidgetStack :: struct {
+	dialogs: [dynamic]Widget,
+	mutex:   sync.Mutex,
 }
 
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
@@ -50,22 +56,92 @@ handle_layout_change :: proc(widget: ^Widget) {
 	Destroys currently active top-level dialog
 */
 destroy_top_dialog :: proc() {
-	assert(len(_dialogs) > 0)
-	top_index := len(_dialogs) - 1
+	top_widget := get_top_widget(&_widgets)
+	if top_widget != nil {
+		switch &w in top_widget {
+		case MessageBox:
+			destroy_messagebox(&w)
+		case CommandBar:
+			destroy_command_bar(&w)
+		case TextViewer:
+			destroy_text_viewer(&w)
+		case FileCopyBox:
+			destroy_file_copy_box(&w)
+		}
+		remove_top_widget(&_widgets)
+	}
+}
 
-	top_widget := _dialogs[top_index]
-
-	switch &w in top_widget {
-	case MessageBox:
-		destroy_messagebox(&w)
-	case CommandBar:
-		destroy_command_bar(&w)
-	case TextViewer:
-		destroy_text_viewer(&w)
-	case FileCopyBox:
-		destroy_file_copy_box(&w)
+init_widget_stack :: proc() -> WidgetStack {
+	ret: WidgetStack = {
+		dialogs = make([dynamic]Widget, context.allocator),
 	}
 
-	unordered_remove(&_dialogs, top_index)
+	return ret
+}
+
+/*
+	Adds specified widget to the top of the stack (Thread-safe)
+*/
+add_widget :: proc(stack: ^WidgetStack, widget: Widget) {
+	sync.lock(&stack.mutex)
+	append(&stack.dialogs, widget)
+	sync.unlock(&stack.mutex)
+}
+
+remove_top_widget :: proc(stack: ^WidgetStack) {
+	sync.lock(&stack.mutex)
+	top_index := len(&stack.dialogs) - 1
+	if top_index >= 0 {
+		unordered_remove(&stack.dialogs, top_index)
+	}
+	sync.unlock(&stack.mutex)
+}
+
+/*
+	Gets the number of widgets on a WidgetStack (Thread-safe)
+*/
+get_widget_count :: proc(stack: ^WidgetStack) -> int {
+	ret: int
+	sync.lock(&stack.mutex)
+	ret = len(stack.dialogs)
+	sync.unlock(&stack.mutex)
+	return ret
+}
+
+/*
+	Locks the widget stack mutex and triggers draw for each widget
+*/
+draw_widgets :: proc(stack: ^WidgetStack) {
+	sync.lock(&stack.mutex)
+	for &widget in stack.dialogs {
+		draw_widget(&widget)
+	}
+	sync.unlock(&stack.mutex)
+}
+
+/*
+		Locks the widget stack mutex and triggers handle_layout_change for each widget
+
+*/
+widgets_handle_layout_change :: proc(stack: ^WidgetStack) {
+	sync.lock(&stack.mutex)
+	for &widget in stack.dialogs {
+		handle_layout_change(&widget)
+	}
+	sync.unlock(&stack.mutex)
+}
+
+/*
+	Gets a pointer to the top widget (or nil) (Thread-safe)
+*/
+get_top_widget :: proc(stack: ^WidgetStack) -> ^Widget {
+	ret: ^Widget = nil
+	sync.lock(&stack.mutex)
+	if len(stack.dialogs) > 0 {
+		ret = &stack.dialogs[len(stack.dialogs) - 1]
+	}
+	sync.unlock(&stack.mutex)
+	return ret
 }
 

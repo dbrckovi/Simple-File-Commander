@@ -10,9 +10,8 @@ import "errors"
 import fs "filesystem"
 
 FileCopyBoxState :: enum {
-	preparation    = 0, // Allows user to specifiy copy settings or cancel, before copying starts
-	progress       = 1, // Shows copy progress and allows cancellation
-	thread_request = 2, // Allows user to respond to thread requests
+	preparation = 0, // Allows user to specifiy copy settings or cancel, before copying starts
+	progress    = 1, // Shows copy progress and allows cancellation
 }
 
 FileCopyBox :: struct {
@@ -45,8 +44,8 @@ create_file_copy_box :: proc(
 
 	box.copy_token.destination_dir = strings.clone(destination_dir, allocator)
 	box.copy_token.source_file_infos = source_files
-	box.copy_token.total_count = count
-	box.copy_token.total_size = size
+	box.copy_token.progress.total_count = count
+	box.copy_token.progress.total_size = size
 
 	perform_file_copy_box_layout(&box)
 	return box, {}
@@ -92,21 +91,6 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 				start_file_copy_thread(&box.copy_token)
 			}
 		}
-		if box.state == .thread_request {
-			request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
-			if request_type == .overwrite_file {
-				if i.key == .Y {
-					post_thread_response(&box.copy_token.dialog, .yes)
-					box.state = .progress
-				} else if i.key == .A {
-					post_thread_response(&box.copy_token.dialog, .yes_all)
-					box.state = .progress
-				} else if i.key == .N {
-					post_thread_response(&box.copy_token.dialog, .no)
-					box.state = .progress
-				}
-			}
-		}
 	case t.Mouse_Input:
 	}
 }
@@ -117,11 +101,11 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 	left := uint(box.panel.rectangle.x + 2)
 	top := uint(box.panel.rectangle.y + 1)
 
-	finished_count := sync.atomic_load(&box.copy_token.finished_count)
-	finished_size := sync.atomic_load(&box.copy_token.finished_size)
+	finished_count := sync.atomic_load(&box.copy_token.progress.finished_count)
+	finished_size := sync.atomic_load(&box.copy_token.progress.finished_size)
 
-	str_total_count := fmt.tprint(box.copy_token.total_count)
-	str_total_size := get_bytes_with_units(box.copy_token.total_size)
+	str_total_count := fmt.tprint(box.copy_token.progress.total_count)
+	str_total_size := get_bytes_with_units(box.copy_token.progress.total_size)
 	str_finished_count := fmt.tprint(finished_count)
 	str_finished_size := fmt.tprint(finished_size)
 
@@ -133,7 +117,7 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 		draw_label_with_value({left + 3, top + 1}, "Files:", count_progress, 8)
 		draw_label_with_value({left + 3, top + 2}, "Size:", size_progress, 8)
 
-		percent_finished: f32 = f32(finished_count) / f32(box.copy_token.total_count)
+		percent_finished: f32 = f32(finished_count) / f32(box.copy_token.progress.total_count)
 		str_percent_finished := fmt.tprintf("%.2v %%", percent_finished)
 		set_color_pair(_current_theme.dialog_value)
 
@@ -161,21 +145,6 @@ draw_file_copy_box :: proc(box: ^FileCopyBox) {
 
 		draw_key_with_function({left, top + 9}, "Enter", "Start", 10)
 		draw_key_with_function({left, top + 10}, "Esc", "Cancel", 10)
-	case .thread_request:
-		request_type: ThreadRequestType = sync.atomic_load(&box.copy_token.dialog.request)
-
-		if request_type == .overwrite_file {
-			set_color_pair(_current_theme.dialog_main)
-			write("Overwrite file?", {left, top + 1})
-
-			set_color_pair(_current_theme.dialog_main)
-			write(box.copy_token.dialog.request_text, {left, top + 3})
-
-			draw_key_with_function({left, top + 6}, "y", "Yes", 10)
-			draw_key_with_function({left, top + 7}, "a", "Yes to all", 10)
-			draw_key_with_function({left, top + 8}, "n", "No", 10)
-			draw_key_with_function({left, top + 10}, "Esc", "Abort copy", 10)
-		}
 	}
 }
 

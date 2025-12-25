@@ -88,8 +88,7 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 			title := len(cmd.params) > 1 ? cmd.params[1] : "title not defined"
 			destroy_top_dialog()
 			box := create_messagebox(text, title)
-			append(&_dialogs, box)
-
+			add_widget(&_widgets, box)
 		} else if strings.equal_fold(cmd.command, "cd..") ||
 		   strings.equal_fold(cmd.command, "cd_up") {
 			destroy_top_dialog()
@@ -121,8 +120,7 @@ try_execute_bar_command :: proc(bar: ^CommandBar, allocator := context.allocator
 		} else if strings.equal_fold(cmd.command, "help") || cmd.command == "?" {
 			destroy_top_dialog()
 			box := create_text_viewer("TODO: draw help", "Help")
-			append(&_dialogs, box)
-
+			add_widget(&_widgets, box)
 		} else if strings.equal_fold(cmd.command, "debug") {
 			debug()
 

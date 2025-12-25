@@ -21,7 +21,7 @@ _right_panel: FilePanel //Right panel data
 _current_theme: Theme
 _focused_panel: ^FilePanel
 _settings: Settings
-_dialogs: [dynamic]Widget //"stack" of dialogs. Empty if there are no dialogs. TODO: Find if there is actually a stack array. (Yeah I know this should be organized differently)
+_widgets: WidgetStack //thread-safe "stack" of dialogs.
 
 main :: proc() {
 	_pid = posix.getpid()
@@ -43,7 +43,7 @@ init :: proc() {
 	init_screen()
 	init_panels()
 	init_theme(&_current_theme)
-	init_dialogs()
+	_widgets = init_widget_stack()
 	try_show_welcome_message()
 }
 
@@ -61,28 +61,20 @@ init_panels :: proc() {
 	initialize_file_panel(&_right_panel, right_dir)
 }
 
-init_dialogs :: proc() {
-	_dialogs = make([dynamic]Widget, context.allocator)
-}
-
 /*
 	Waits for something interesting to happen and handles it
 */
 update :: proc() {
 	input, screen_size_changed := wait_for_interesting_event(100 * time.Millisecond)
 	top_widget: ^Widget = nil
-	if len(_dialogs) > 0 {
-		top_widget = &_dialogs[len(_dialogs) - 1]
-	}
+	top_widget = get_top_widget(&_widgets)
 
 	if screen_size_changed {
 		deinit_screen()
 		init_screen()
 		recalculate_indexes(&_left_panel)
 		recalculate_indexes(&_right_panel)
-		for &widget in _dialogs {
-			handle_layout_change(&widget)
-		}
+		widgets_handle_layout_change(&_widgets)
 	}
 
 	if input != nil {
@@ -178,7 +170,7 @@ wait_for_interesting_event :: proc(
 	Shows welcome message if settings allow it and there are no other dialogs
 */
 try_show_welcome_message :: proc() {
-	if _settings.show_welcome_message && len(_dialogs) == 0 {
+	if _settings.show_welcome_message && get_widget_count(&_widgets) == 0 {
 		title := "Welcome to 'Simple File Commander'"
 		sb := strings.builder_make(context.temp_allocator)
 		strings.write_rune(&sb, '\n')
@@ -188,7 +180,7 @@ try_show_welcome_message :: proc() {
 		strings.write_string(&sb, "Press 'Esc' to close this message.\n")
 		strings.write_rune(&sb, '\n')
 		box := create_messagebox(strings.to_string(sb), title)
-		append(&_dialogs, box)
+		add_widget(&_widgets, box)
 	}
 }
 
@@ -204,6 +196,6 @@ show_error_message :: proc(error: err.SfcException) {
 
 	msg := fmt.tprint(error.message, "\n\n", "ERROR:", error.error)
 	box := create_messagebox(msg, "Error")
-	append(&_dialogs, box)
+	add_widget(&_widgets, box)
 }
 
