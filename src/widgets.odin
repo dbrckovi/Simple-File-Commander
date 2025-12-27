@@ -27,13 +27,14 @@ BorderStyle :: enum {
 
 WidgetStack :: struct {
 	dialogs: [dynamic]Widget,
-	mutex:   sync.Mutex,
+	mutex:   sync.Recursive_Mutex,
 }
 
 /*
 	Handles imput of specific widget
 */
 handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
+
 	#partial switch &w in widget {
 	case CommandBar:
 		handle_input_command_bar(&w, input)
@@ -63,6 +64,8 @@ handle_layout_change :: proc(widget: ^Widget) {
 */
 destroy_top_widget :: proc(stack: ^WidgetStack) {
 	sync.lock(&stack.mutex)
+	defer sync.unlock(&stack.mutex)
+
 	top_widget: ^Widget
 	top_index := len(&stack.dialogs) - 1
 	if top_index >= 0 {
@@ -81,7 +84,6 @@ destroy_top_widget :: proc(stack: ^WidgetStack) {
 		}
 		unordered_remove(&stack.dialogs, top_index)
 	}
-	sync.unlock(&stack.mutex)
 }
 
 init_widget_stack :: proc() -> WidgetStack {
@@ -97,19 +99,17 @@ init_widget_stack :: proc() -> WidgetStack {
 */
 add_widget :: proc(stack: ^WidgetStack, widget: Widget) {
 	sync.lock(&stack.mutex)
+	defer sync.unlock(&stack.mutex)
 	append(&stack.dialogs, widget)
-	sync.unlock(&stack.mutex)
 }
 
 /*
 	Gets the number of widgets on a WidgetStack (Thread-safe)
 */
 get_widget_count :: proc(stack: ^WidgetStack) -> int {
-	ret: int
 	sync.lock(&stack.mutex)
-	ret = len(stack.dialogs)
-	sync.unlock(&stack.mutex)
-	return ret
+	defer sync.unlock(&stack.mutex)
+	return len(stack.dialogs)
 }
 
 /*
@@ -117,10 +117,10 @@ get_widget_count :: proc(stack: ^WidgetStack) -> int {
 */
 draw_widgets :: proc(stack: ^WidgetStack) {
 	sync.lock(&stack.mutex)
+	defer sync.unlock(&stack.mutex)
 	for &widget in stack.dialogs {
 		draw_widget(&widget)
 	}
-	sync.unlock(&stack.mutex)
 }
 
 /*
@@ -129,22 +129,22 @@ draw_widgets :: proc(stack: ^WidgetStack) {
 */
 widgets_handle_layout_change :: proc(stack: ^WidgetStack) {
 	sync.lock(&stack.mutex)
+	defer sync.unlock(&stack.mutex)
 	for &widget in stack.dialogs {
 		handle_layout_change(&widget)
 	}
-	sync.unlock(&stack.mutex)
 }
 
 /*
 	Gets a pointer to the top widget (or nil) (Thread-safe)
 */
 get_top_widget :: proc(stack: ^WidgetStack) -> ^Widget {
-	ret: ^Widget = nil
 	sync.lock(&stack.mutex)
+	defer sync.unlock(&stack.mutex)
+	ret: ^Widget = nil
 	if len(stack.dialogs) > 0 {
 		ret = &stack.dialogs[len(stack.dialogs) - 1]
 	}
-	sync.unlock(&stack.mutex)
 	return ret
 }
 
