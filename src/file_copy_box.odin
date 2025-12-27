@@ -51,11 +51,12 @@ create_file_copy_box :: proc(
 	return box, {}
 }
 
+/*
+	Stops the thread, waits for it ot finish and cleans up
+*/
 destroy_file_copy_box :: proc(box: ^FileCopyBox) {
-	//TODO: Review
 	if (box.copy_token.thread != nil) {
-		thread.join(box.copy_token.thread)
-		thread.destroy(box.copy_token.thread)
+		stop_and_destroy_file_copy_thread(&box.copy_token)
 	}
 
 	if len(box.panel.title) > 0 {
@@ -71,6 +72,9 @@ destroy_file_copy_box :: proc(box: ^FileCopyBox) {
 	}
 }
 
+/*
+	Puts FileCopyBox on to the center of the screen
+*/
 perform_file_copy_box_layout :: proc(box: ^FileCopyBox) {
 	box.panel.rectangle.w = 40
 	box.panel.rectangle.h = 13
@@ -86,9 +90,15 @@ handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
 				toggle_maybe_bool(&box.copy_token.overwrite_files, true)
 			}
 			if i.key == .Enter {
-				box.state = .progress
-				change_box_with_title_title(&box.panel, "Copying files...")
-				start_file_copy_thread(&box.copy_token)
+				error := start_file_copy_thread(&box.copy_token)
+
+				if error != {} {
+					destroy_top_widget(&_widgets)
+					show_error_message(error)
+				} else {
+					box.state = .progress
+					change_box_with_title_title(&box.panel, "Copying files...")
+				}
 			}
 		}
 	case t.Mouse_Input:

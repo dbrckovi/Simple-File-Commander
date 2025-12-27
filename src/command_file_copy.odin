@@ -1,11 +1,9 @@
 package sfc
 
-import "core:fmt"
 import "core:os"
 import filepath "core:path/filepath"
 import "core:sync"
 import "core:thread"
-import "core:time"
 import "errors"
 import "filesystem"
 
@@ -42,7 +40,13 @@ start_file_copy_thread :: proc(token: ^FileCopyToken) -> errors.SfcException {
 file_copy_work :: proc(t: ^thread.Thread) {
 	token := (^FileCopyToken)(t.data)
 
-
+	for item in token.source_file_infos {
+		if item.file.is_dir {
+			threaded_copy_dir(token, item.file.fullpath, token.destination_dir)
+		} else {
+			threaded_copy_file(token, item.file, token.destination_dir)
+		}
+	}
 }
 
 /*
