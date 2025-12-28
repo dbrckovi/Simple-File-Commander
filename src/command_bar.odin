@@ -37,8 +37,8 @@ destroy_command_bar :: proc(bar: ^CommandBar) {
 	delete(bar.chars)
 }
 
-handle_input_command_bar :: proc(bar: ^CommandBar, input: t.Input) {
-	switch i in input {
+update_command_bar :: proc(bar: ^CommandBar, data: update_data) {
+	switch i in data.input {
 	case t.Keyboard_Input:
 		char := key_to_rune(i.key)
 		if char != {} {

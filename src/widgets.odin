@@ -31,15 +31,14 @@ WidgetStack :: struct {
 }
 
 /*
-	Handles imput of specific widget
+	Updates specified widget based on specified update data
 */
-handle_widget_input :: proc(widget: ^Widget, input: t.Input) {
-
+widget_update :: proc(widget: ^Widget, data: update_data) {
 	#partial switch &w in widget {
 	case CommandBar:
-		handle_input_command_bar(&w, input)
+		update_command_bar(&w, data)
 	case FileCopyBox:
-		handle_input_file_copy_box(&w, input)
+		update_file_copy_box(&w, data)
 	}
 }
 
@@ -125,7 +124,6 @@ draw_widgets :: proc(stack: ^WidgetStack) {
 
 /*
 		Locks the widget stack mutex and triggers handle_layout_change for each widget
-
 */
 widgets_handle_layout_change :: proc(stack: ^WidgetStack) {
 	sync.lock(&stack.mutex)

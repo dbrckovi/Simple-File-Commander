@@ -82,8 +82,8 @@ perform_file_copy_box_layout :: proc(box: ^FileCopyBox) {
 	box.panel.rectangle.y = (int(_screen.size.h) - box.panel.rectangle.h) / 2
 }
 
-handle_input_file_copy_box :: proc(box: ^FileCopyBox, input: t.Input) {
-	switch i in input {
+update_file_copy_box :: proc(box: ^FileCopyBox, data: update_data) {
+	switch i in data.input {
 	case t.Keyboard_Input:
 		if box.state == .preparation {
 			if i.key == .F {

@@ -50,32 +50,33 @@ init_panels :: proc() {
 	Waits for something interesting to happen and handles it
 */
 update :: proc() {
-	input, screen_size_changed := wait_for_interesting_event(100 * time.Millisecond)
+	data := wait_for_interesting_event(100 * time.Millisecond)
 	top_widget: ^Widget = nil
 	top_widget = get_top_widget(&_widgets)
 
-	if screen_size_changed {
+	if data.screen_size_changed {
 		deinit_screen()
 		init_screen()
 		recalculate_indexes(&_left_panel)
 		recalculate_indexes(&_right_panel)
-		widgets_handle_layout_change(&_widgets)
 	}
 
-	if input != nil {
+	if data.input != nil {
 		if top_widget != nil {
-			i, is_keyboard := input.(t.Keyboard_Input)
+			i, is_keyboard := data.input.(t.Keyboard_Input)
 			if is_keyboard {
 				if i.key == .Escape {
 					destroy_top_widget(&_widgets)
 					return
 				}
 			}
-
-			handle_widget_input(top_widget, input)
 		} else {
-			handle_input_main(input)
+			handle_input_main(data.input)
 		}
+	}
+
+	if top_widget != nil {
+		widget_update(top_widget, data)
 	}
 }
 
@@ -118,37 +119,40 @@ handle_input_main :: proc(input: t.Input) {
 }
 
 /*
+	Holds data that might be important for updating the state of the program
+*/
+update_data :: struct {
+	input:               t.Input, //Hold info on keyboard or mouse event. Null if no such event happened
+	screen_size_changed: bool, //True if screen was resized
+}
+
+/*
 	Waits for something interesting to happen (which would cause the screen to redraw) and returns info on what happened
 	@param timeout_ms: number of milliseconds to wait for something interesting. If nothing happens, return anyway
 */
-wait_for_interesting_event :: proc(
-	timeout_ms: time.Duration,
-) -> (
-	input: t.Input,
-	screen_size_changed: bool,
-) {
+wait_for_interesting_event :: proc(timeout_ms: time.Duration) -> (data: update_data) {
 	start := time.now()
 
 	WAIT_LOOP: for {
-		input = t.read(&_screen)
+		data.input = t.read(&_screen)
 
 		new_size := t.get_term_size()
 		if new_size != _screen.size {
-			screen_size_changed = true
+			data.screen_size_changed = true
 		}
 
 		timeout_expired := false
 		elapsed := time.diff(start, time.now())
 		if elapsed > timeout_ms do timeout_expired = true
 
-		if input != nil || screen_size_changed || timeout_expired {
+		if data.input != nil || data.screen_size_changed || timeout_expired {
 			break WAIT_LOOP
 		}
 
 		time.sleep(time.Millisecond)
 	}
 
-	return input, screen_size_changed
+	return data
 }
 
 /*
