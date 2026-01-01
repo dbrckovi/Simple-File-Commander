@@ -83,25 +83,38 @@ perform_file_copy_box_layout :: proc(box: ^FileCopyBox) {
 }
 
 update_file_copy_box :: proc(box: ^FileCopyBox, data: update_data) {
-	switch i in data.input {
-	case t.Keyboard_Input:
-		if box.state == .preparation {
-			if i.key == .F {
-				toggle_maybe_bool(&box.copy_token.overwrite_files, true)
-			}
-			if i.key == .Enter {
-				error := start_file_copy_thread(&box.copy_token)
 
-				if error != {} {
+	if data.screen_size_changed {
+		perform_file_copy_box_layout(box)
+	}
+
+	if data.input != nil {
+		switch i in data.input {
+		case t.Keyboard_Input:
+			if box.state == .preparation {
+				if i.key == .F {
+					toggle_maybe_bool(&box.copy_token.overwrite_files, true)
+				}
+				if i.key == .Enter {
+					error := start_file_copy_thread(&box.copy_token)
+					if error != {} {
+						destroy_top_widget(&_widgets)
+						show_error_message(error)
+					} else {
+						box.state = .progress
+						change_box_with_title_title(&box.panel, "Copying files...")
+					}
+				}
+				if i.key == .Escape {
 					destroy_top_widget(&_widgets)
-					show_error_message(error)
-				} else {
-					box.state = .progress
-					change_box_with_title_title(&box.panel, "Copying files...")
+				}
+			} else if box.state == .progress {
+				if i.key == .Escape {
+					//TODO: call this: stop_and_destroy_file_copy_thread
 				}
 			}
+		case t.Mouse_Input:
 		}
-	case t.Mouse_Input:
 	}
 }
 

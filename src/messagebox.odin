@@ -1,5 +1,6 @@
 package sfc
 
+import t "../lib/TermCL"
 import "core:strings"
 
 MessageBox :: struct {
@@ -60,6 +61,22 @@ perform_messagebox_layout :: proc(box: ^MessageBox) {
 		box.panel.rectangle.h = int(max_height)
 	}
 	box.panel.rectangle.y = (int(_screen.size.h) - box.panel.rectangle.h) / 2
+}
+
+update_message_box :: proc(box: ^MessageBox, data: update_data) {
+	if data.screen_size_changed {
+		perform_messagebox_layout(box)
+	}
+
+	if data.input != nil {
+		switch i in data.input {
+		case t.Keyboard_Input:
+			if i.key == .Escape {
+				destroy_top_widget(&_widgets)
+			}
+		case t.Mouse_Input:
+		}
+	}
 }
 
 delete_messagebox_lines :: proc(box: ^MessageBox) {

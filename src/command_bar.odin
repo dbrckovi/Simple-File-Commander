@@ -52,6 +52,10 @@ update_command_bar :: proc(bar: ^CommandBar, data: update_data) {
 			if i.key == .Enter {
 				try_execute_bar_command(bar, context.allocator)
 			}
+			if i.key == .Escape {
+				destroy_top_widget(&_widgets)
+			}
+
 		}
 	case t.Mouse_Input:
 	}

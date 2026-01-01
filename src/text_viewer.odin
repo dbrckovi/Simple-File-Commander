@@ -1,5 +1,6 @@
 package sfc
 
+import t "../lib/TermCL"
 import "core:strings"
 
 TextViewer :: struct {
@@ -50,6 +51,23 @@ perform_text_viewer_layout :: proc(box: ^TextViewer) {
 	delete_text_viewer_lines(box)
 	//TODO: regenerate lines based on word wrap
 }
+
+update_text_viewer :: proc(box: ^TextViewer, data: update_data) {
+	if data.screen_size_changed {
+		perform_text_viewer_layout(box)
+	}
+
+	if data.input != nil {
+		switch i in data.input {
+		case t.Keyboard_Input:
+			if i.key == .Escape {
+				destroy_top_widget(&_widgets)
+			}
+		case t.Mouse_Input:
+		}
+	}
+}
+
 
 draw_text_viewer :: proc(box: ^TextViewer) {
 	draw_box_with_title(&box.panel)

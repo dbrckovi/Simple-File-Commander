@@ -18,13 +18,6 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 ![Screenshot goes here](Screenshot.png)
 
 # Reminder TODO:
- - [!] Each widget should have one 'update' and receive everything in it, instead of having layout changes and inputs
-      The problem is that now widgets can't reliably track events from threads...
-      draw is for drawing and not changing state
-      handle_inputs is for handling keyboard and mouse events
-      layou_changes are for changing GUI state...
-      there is nothing that reacts to signals from threads
-      Partially done. Handle_layout_change is now not called 
  - [ ] Threading sync mechanism sucks. Rewrite everything from scratch
  - [ ] Keep it !!! SIMPLE !!!
  - [ ] Keys idea:

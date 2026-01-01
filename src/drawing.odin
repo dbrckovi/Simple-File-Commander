@@ -603,8 +603,6 @@ get_main_splitter_x :: proc() -> uint {
 	Draws specified widget to the screen
 */
 draw_widget :: proc(widget: ^Widget) {
-	// content_rect := draw_widget_background(widget.location, widget.border_style, widget.title)
-
 	switch &w in widget {
 	case CommandBar:
 		draw_command_bar(&w)

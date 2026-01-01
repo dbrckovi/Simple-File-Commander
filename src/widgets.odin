@@ -34,11 +34,15 @@ WidgetStack :: struct {
 	Updates specified widget based on specified update data
 */
 widget_update :: proc(widget: ^Widget, data: update_data) {
-	#partial switch &w in widget {
+	switch &w in widget {
 	case CommandBar:
 		update_command_bar(&w, data)
 	case FileCopyBox:
 		update_file_copy_box(&w, data)
+	case MessageBox:
+		update_message_box(&w, data)
+	case TextViewer:
+		update_text_viewer(&w, data)
 	}
 }
 

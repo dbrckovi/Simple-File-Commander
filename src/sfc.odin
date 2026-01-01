@@ -61,18 +61,8 @@ update :: proc() {
 		recalculate_indexes(&_right_panel)
 	}
 
-	if data.input != nil {
-		if top_widget != nil {
-			i, is_keyboard := data.input.(t.Keyboard_Input)
-			if is_keyboard {
-				if i.key == .Escape {
-					destroy_top_widget(&_widgets)
-					return
-				}
-			}
-		} else {
-			handle_input_main(data.input)
-		}
+	if data.input != nil && top_widget == nil {
+		handle_input_main(data.input)
 	}
 
 	if top_widget != nil {
