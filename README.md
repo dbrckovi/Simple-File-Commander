@@ -18,6 +18,7 @@ This is a personal project I use to learn Odin and "low-level" systems programmi
 ![Screenshot goes here](Screenshot.png)
 
 # Reminder TODO:
+
  - [ ] Threading sync mechanism sucks. Rewrite everything from scratch
  - [ ] Keep it !!! SIMPLE !!!
  - [ ] Keys idea:
