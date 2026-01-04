@@ -1,5 +1,6 @@
 package sfc
 
+import "core:fmt"
 import "core:os"
 import filepath "core:path/filepath"
 import "core:sync"
@@ -42,11 +43,29 @@ file_copy_work :: proc(t: ^thread.Thread) {
 
 	for item in token.source_file_infos {
 		if item.file.is_dir {
-			threaded_copy_dir(token, item.file.fullpath, token.destination_dir)
+			error := threaded_copy_dir(token, item.file.fullpath, token.destination_dir)
+			if error != {} {
+				notify_file_copy_work_ended(token, error)
+				return
+			}
 		} else {
-			threaded_copy_file(token, item.file, token.destination_dir)
+			error := threaded_copy_file(token, item.file, token.destination_dir)
+			if error != {} {
+				notify_file_copy_work_ended(token, error)
+				return
+			}
 		}
 	}
+
+	notify_file_copy_work_ended(token)
+}
+
+/*
+	Notifies the caller that file copy thread is finished
+	@param error: If specified, error is placed on the token
+*/
+notify_file_copy_work_ended :: proc(token: ^FileCopyToken, error: errors.SfcException = {}) {
+	//TODO: notify
 }
 
 /*
@@ -62,7 +81,7 @@ threaded_copy_dir :: proc(
 	token: ^FileCopyToken,
 	src_dir: string,
 	dest_dir: string,
-) -> errors.SfcError {
+) -> errors.SfcException {
 
 	return {}
 }
@@ -74,6 +93,25 @@ threaded_copy_file :: proc(
 ) -> errors.SfcException {
 
 	dest_file := filepath.join({dest_dir, src_file.name}, context.temp_allocator)
+
+	if os.exists(dest_file) {
+		overwrite, ok := token.overwrite_files.?
+
+		if !ok {
+			//show dialog and wait
+		}
+
+		if !overwrite {
+			//Lie for now
+			sync.atomic_add(&token.progress.finished_count, 1)
+			sync.atomic_add(&token.progress.finished_size, src_file.size)
+		} else {
+			delete_error := os.remove(dest_file)
+			if delete_error != nil {
+				return errors.create_exception(.os_error, fmt.tprint(delete_error))
+			}
+		}
+	}
 
 	copy_error := filesystem.copy_file_raw(src_file.fullpath, dest_file)
 
